@@ -1,18 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.46.1";
 import z from "https://esm.sh/zod@3.23.2";
-
-const AddAthleteToSeasonSchema = z.object({
-  athlete: z.string().uuid(),
-  season: z.string().uuid(),
-  points: z.number().int().min(0),
-});
-
-type AddAthleteToSeasonInput = z.infer<typeof AddAthleteToSeasonSchema>;
+import {AthleteSchema} from "../_shared/schemas.ts";
 
 Deno.serve(async (req) => {
   try {
     const body = await req.json();
-    const parsedBody = AddAthleteToSeasonSchema.safeParse(body);
+    const parsedBody = AthleteSchema.safeParse(body);
 
     if (!parsedBody.success) {
       return new Response(
@@ -21,7 +14,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { athlete, season, points } = parsedBody.data;
+    const { name, season } = parsedBody.data;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -30,8 +23,8 @@ Deno.serve(async (req) => {
     );
 
     const { data, error } = await supabase
-      .from("athletes_to_seasons")
-      .insert({ athlete, season, points })
+      .from("athletes")
+      .insert({ name, season})
       .select()
       .single();
 
@@ -43,7 +36,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, season: data }),
+      JSON.stringify({ success: true, athlete: data }),
       { status: 201, headers: { "Content-Type": "application/json" } },
     );
 
@@ -65,5 +58,5 @@ Deno.serve(async (req) => {
   curl -X POST "https://yswwvmzncodhxafkzswz.supabase.co/functions/v1/addAthleteToSeason" \
   -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlzd3d2bXpuY29kaHhhZmt6c3d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzODMwNDcsImV4cCI6MjA4MDk1OTA0N30.PbXFC1FLzN8oEiUCIuL7u662SteIEcsxuGff9icHZ9A' \
   -H "Content-Type: application/json" \
-  -d '{"athlete": "4129cc07-2f92-464d-a025-00e8ac8348cf", "season": "58269bd3-9896-4790-a528-52ac2ba7eae3", "points": 25 }'    
+  -d '{"name": "Dylan Pan, "season": "58269bd3-9896-4790-a528-52ac2ba7eae3"}'    
 */

@@ -1,17 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.46.1";
 import z from "https://esm.sh/zod@3.23.2";
-
-const AddMeetToSeasonSchema = z.object({
-  meet: z.string().uuid(),
-  season: z.string().uuid(),
-});
-
-type AddMeetToSeasonInput = z.infer<typeof AddMeetToSeasonSchema>;
+import { MeetSchema } from "../_shared/schemas.ts";
 
 Deno.serve(async (req) => {
   try {
     const body = await req.json();
-    const parsedBody = AddMeetToSeasonSchema.safeParse(body);
+    const parsedBody = MeetSchema.safeParse(body);
 
     if (!parsedBody.success) {
       return new Response(
@@ -20,7 +14,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { meet, season } = parsedBody.data;
+    const { name, date, location, num_teams, season } = parsedBody.data;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -29,8 +23,8 @@ Deno.serve(async (req) => {
     );
 
     const { data, error } = await supabase
-      .from("meets_to_seasons")
-      .insert({ meet, season })
+      .from("meets")
+      .insert({ name, date, location, num_teams, season })
       .select()
       .single();
 
@@ -61,8 +55,8 @@ Deno.serve(async (req) => {
   1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
   2. Make an HTTP request:
 
-  curl -X POST "https://yswwvmzncodhxafkzswz.supabase.co/functions/v1/addMeetToSeason" \
+  curl -X POST "https://yswwvmzncodhxafkzswz.supabase.co/functions/v1/addMeet" \
   -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlzd3d2bXpuY29kaHhhZmt6c3d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzODMwNDcsImV4cCI6MjA4MDk1OTA0N30.PbXFC1FLzN8oEiUCIuL7u662SteIEcsxuGff9icHZ9A' \
   -H "Content-Type: application/json" \
-  -d '{"meet": "7c6d0a72-3d94-48fc-8f8f-256400de247e", "season": "58269bd3-9896-4790-a528-52ac2ba7eae3"}'    
+  -d '{"name": "Meet #1", "date": "2026-04-15T09:00:00Z", "location": "Groton", "num_teams": 3, "season": "58269bd3-9896-4790-a528-52ac2ba7eae3" }'    
 */
