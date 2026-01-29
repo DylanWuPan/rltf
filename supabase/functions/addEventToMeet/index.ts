@@ -5,7 +5,7 @@ import { EventSchema } from "../_shared/schemas.ts";
 Deno.serve(async (req) => {
   try {
     const body = await req.json();
-    const parsedBody = MeetSchema.safeParse(body);
+    const parsedBody = EventSchema.safeParse(body);
 
     if (!parsedBody.success) {
       return new Response(
@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { name, date, location, num_teams, season } = parsedBody.data;
+    const { meet, athlete, type, points, place } = parsedBody.data;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -23,8 +23,8 @@ Deno.serve(async (req) => {
     );
 
     const { data, error } = await supabase
-      .from("meets")
-      .insert({ name, date, location, num_teams, season })
+      .from("events")
+      .insert({ meet, athlete, type, points, place })
       .select()
       .single();
 
@@ -55,8 +55,8 @@ Deno.serve(async (req) => {
   1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
   2. Make an HTTP request:
 
-  curl -X POST "https://yswwvmzncodhxafkzswz.supabase.co/functions/v1/addMeet" \
+  curl -X POST "https://yswwvmzncodhxafkzswz.supabase.co/functions/v1/addEventToMeet" \
   -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlzd3d2bXpuY29kaHhhZmt6c3d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzODMwNDcsImV4cCI6MjA4MDk1OTA0N30.PbXFC1FLzN8oEiUCIuL7u662SteIEcsxuGff9icHZ9A' \
   -H "Content-Type: application/json" \
-  -d '{"name": "Meet #1", "date": "2026-04-15T09:00:00Z", "location": "Groton", "num_teams": 3, "season": "58269bd3-9896-4790-a528-52ac2ba7eae3" }'    
+  -d '{ "meet": "7c6d0a72-3d94-48fc-8f8f-256400de247e", "athlete": "Dylan Pan", "type": "Pole Vault", "points": 10, "place": 1 }'    
 */

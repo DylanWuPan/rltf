@@ -16,6 +16,7 @@ export default function MeetEventsPage({ params }: PageProps) {
   const searchParams = useSearchParams();
   const meetName = searchParams.get("name");
   const seasonId = searchParams.get("season");
+  const numTeams = Number(searchParams.get("num_teams"));
 
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
@@ -68,26 +69,37 @@ export default function MeetEventsPage({ params }: PageProps) {
     fetchEventTypes();
   }, [fetchEvents, fetchAthletes, fetchEventTypes]);
 
-  const renderItem = (event: Event) => (
-    <Link
-      key={event.id}
-      href={`/Events/${event.id}`}
-      className="group relative flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow duration-200 cursor-pointer mb-4"
+  // Group events by type so multiple athletes in the same event appear together
+  const groupedEvents = events.reduce((acc: Record<string, Event[]>, ev) => {
+    if (!acc[ev.type]) acc[ev.type] = [];
+    acc[ev.type].push(ev);
+    return acc;
+  }, {});
+
+  const renderGroupedItem = (type: string, eventList: Event[]) => (
+    <div
+      key={type}
+      className="p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow mb-4"
     >
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-500">
-          {event.type}
-        </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          {event.athlete} |{" "}
-          {event.place === 1 ? `${event.place}st` : `${event.place}th`} Place |{" "}
-          {event.points} points
-        </p>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+        {type}
+      </h3>
+
+      <div className="flex flex-col gap-1">
+        {eventList
+          .sort((a, b) => a.place - b.place)
+          .map((event) => (
+            <p
+              key={event.id}
+              className="text-sm text-gray-600 dark:text-gray-400"
+            >
+              {event.athlete} |{" "}
+              {event.place === 1 ? `${event.place}st` : `${event.place}th`}{" "}
+              Place | {event.points} points
+            </p>
+          ))}
       </div>
-      <div className="text-blue-500 group-hover:scale-110 transition-transform duration-200">
-        &rarr;
-      </div>
-    </Link>
+    </div>
   );
 
   const addForm = (
@@ -122,6 +134,7 @@ export default function MeetEventsPage({ params }: PageProps) {
             athletes: athletesArray,
             places: placesArray,
             meet,
+            numTeams,
           }),
         });
 
@@ -226,8 +239,8 @@ export default function MeetEventsPage({ params }: PageProps) {
     <DashboardTemplate
       title={meetName ? `${meetName}` : "Meet"}
       subject="Events"
-      items={events}
-      renderItem={renderItem}
+      items={Object.entries(groupedEvents)}
+      renderItem={(entry) => renderGroupedItem(entry[0], entry[1])}
       addForm={addForm}
       loading={loading}
       error={error}
