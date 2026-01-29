@@ -20,26 +20,10 @@ export const AthleteSchema = z.object({
   season: z.string().uuid(),
 });
 
-const MeetToSeasonSchema = z.object({
-  meet: z.string().uuid(),
-  season: z.string().uuid(),
-});
-
-export type MeetToSeason = z.infer<typeof MeetToSeasonSchema>;
-
-const AthleteToSeasonSchema = z.object({
-  athlete: z.string().uuid(),
-  season: z.string().uuid(),
-  points: z.number().int().min(0),
-});
-
-export type AthleteToSeason = z.infer<typeof AthleteToSeasonSchema>;
-
-const AthleteToMeetSchema = z.object({
+export const EventSchema = z.object({
+  type: z.string().min(1),
   athlete: z.string().uuid(),
   meet: z.string().uuid(),
+  place: z.number().int().min(1),
   points: z.number().int().min(0),
-  details: z.record(z.string(), z.any()),
 });
-
-export type AthleteToMeet = z.infer<typeof AthleteToMeetSchema>;

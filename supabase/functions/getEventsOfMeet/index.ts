@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
 
     const { data, error } = await supabaseClient
       .from("events")
-      .select("id, type, athlete, points")
+      .select("id, type, athlete, place, points")
       .eq("meet", meet)
       .order("type", { ascending: true });
 

@@ -24,6 +24,8 @@ export default function MeetEventsPage({ params }: PageProps) {
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
 
+  const [rows, setRows] = useState<number[]>([0]);
+
   const fetchEvents = useCallback(async () => {
     setLoading(true);
     try {
@@ -93,23 +95,41 @@ export default function MeetEventsPage({ params }: PageProps) {
       onSubmit={async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const form = e.currentTarget;
-        const formData = new FormData(form);
 
+        // Collect event type
+        const formData = new FormData(form);
         const type = formData.get("type")?.toString() || "";
-        const athlete = formData.get("athlete")?.toString() || "";
-        const place = Number(formData.get("place")?.toString());
+
+        // Collect multiple athlete/place pairs
+        const athleteSelects = Array.from(
+          form.querySelectorAll("select[name='athlete']")
+        ) as HTMLSelectElement[];
+
+        const placeInputs = Array.from(
+          form.querySelectorAll("input[name='place']")
+        ) as HTMLInputElement[];
+
+        const athletesArray = athleteSelects.map((s) => s.value);
+        const placesArray = placeInputs.map((i) => Number(i.value));
+
         const meet = id;
 
         const res = await fetch("/api/addEventToMeet", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type, athlete, place, meet }),
+          body: JSON.stringify({
+            type,
+            athletes: athletesArray,
+            places: placesArray,
+            meet,
+          }),
         });
 
         const data = await res.json();
         if (res.ok) {
           fetchEvents();
           form.reset();
+          setRows([0]);
           setError(null);
         } else {
           setError(data.error || "Failed to add event");
@@ -133,33 +153,66 @@ export default function MeetEventsPage({ params }: PageProps) {
         </select>
       </label>
 
-      <label className="flex flex-col text-gray-700 dark:text-gray-200 font-medium">
-        Athlete:
-        <select
-          name="athlete"
-          required
-          className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Select an athlete...</option>
-          {athletes.map((athlete) => (
-            <option key={athlete.id} value={athlete.name}>
-              {athlete.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="flex flex-col gap-3">
+        {rows.map((idx) => (
+          <div
+            key={idx}
+            className="flex flex-row gap-3 items-end bg-white/50 dark:bg-gray-700/50 p-3 rounded-lg"
+          >
+            <label className="flex flex-col text-gray-700 dark:text-gray-200 font-medium flex-1">
+              Athlete:
+              <select
+                name="athlete"
+                required
+                className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select an athlete...</option>
+                {athletes.map((athlete) => (
+                  <option key={athlete.id} value={athlete.name}>
+                    {athlete.name}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-      <label className="flex flex-col text-gray-700 dark:text-gray-200 font-medium">
-        Place:
-        <input
-          name="place"
-          type="number"
-          min={0}
-          step={1}
-          required
-          className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </label>
+            <label className="flex flex-col text-gray-700 dark:text-gray-200 font-medium w-28">
+              Place:
+              <input
+                name="place"
+                type="number"
+                min={0}
+                step={1}
+                required
+                className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </label>
+
+            {rows.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setRows((prev) => prev.filter((r) => r !== idx))}
+                className="text-red-500 hover:text-red-700 font-bold px-2"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={() =>
+            setRows((prev) => [
+              ...prev,
+              prev.length ? prev[prev.length - 1] + 1 : 0,
+            ])
+          }
+          className="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-900 dark:text-gray-100 px-3 py-2 rounded-lg transition-colors duration-200"
+        >
+          + Add Another Athlete
+        </button>
+      </div>
+
       <button
         type="submit"
         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
