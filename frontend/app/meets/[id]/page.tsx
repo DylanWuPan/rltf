@@ -94,7 +94,21 @@ export default function MeetEventsPage({ params }: PageProps) {
               className="text-sm text-gray-600 dark:text-gray-400"
             >
               {event.athlete} |{" "}
-              {event.place === 1 ? `${event.place}st` : `${event.place}th`}{" "}
+              {(() => {
+                const place = event.place;
+                const suffix =
+                  place % 100 >= 11 && place % 100 <= 13
+                    ? "th"
+                    : place % 10 === 1
+                    ? "st"
+                    : place % 10 === 2
+                    ? "nd"
+                    : place % 10 === 3
+                    ? "rd"
+                    : "th";
+
+                return `${place}${suffix}`;
+              })()}{" "}
               Place | {event.points} points
             </p>
           ))}
