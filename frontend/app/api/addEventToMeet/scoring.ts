@@ -13,9 +13,9 @@ export function calculateScores(
     };
 
     const relayScoring: Record<number, number[]> = {
-        2: [5, 3],
-        3: [5, 3, 1],
-        4: [6, 4, 2]
+        2: [5 / 4, 3 / 4],          // 1.25, 0.75
+        3: [5 / 4, 3 / 4, 1 / 4],   // 1.25, 0.75, 0.25
+        4: [6 / 4, 4 / 4, 2 / 4]    // 1.5, 1, 0.5
     };
 
     const championshipScoring = [10, 8, 6, 4, 2, 1];
