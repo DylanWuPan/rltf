@@ -140,6 +140,14 @@ export default function MeetEventsPage({ params }: PageProps) {
 
         const meet = id;
 
+        console.log("Adding event:", {
+          type,
+          athletesArray,
+          placesArray,
+          meet,
+          numTeams,
+        });
+
         const res = await fetch("/api/addEventToMeet", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

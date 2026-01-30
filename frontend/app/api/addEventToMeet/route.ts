@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { calculateScores } from "./scoring";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -14,12 +15,9 @@ export async function POST(req: Request) {
       );
     }
 
-    // CALCULATE POINTS BASED ON PLACES
-    const points: Number[] = calculatePoints(places, type, numTeams);
+    const points: number[] = calculateScores(type, numTeams, places);
 
     for (let i = 0; i < athletes.length; i++) {
-      console.log(`Athlete: ${athletes[i]}, Place: ${places[i]}, Points: ${points[i]}`);
-
       const res = await fetch(
         `${SUPABASE_URL}/functions/v1/addEventToMeet`,
         {
@@ -28,7 +26,13 @@ export async function POST(req: Request) {
             "Content-Type": "application/json",
             Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
           },
-          body: JSON.stringify({ type, athlete: athletes[i], meet, place: places[i], points: points[i] } ),
+          body: JSON.stringify({
+            type,
+            athlete: athletes[i],
+            meet,
+            place: places[i],
+            points: points[i],
+          }),
         }
       );
 
@@ -39,10 +43,8 @@ export async function POST(req: Request) {
           { status: res.status }
         );
       }
-
-      const newEvent = await res.json();
-      return NextResponse.json(newEvent);
     }
+    return NextResponse.json({ success: true }, { status: 201 });
   }  catch (err) {
     return NextResponse.json(
       { error: err },

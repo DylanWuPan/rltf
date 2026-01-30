@@ -1,4 +1,4 @@
-function calculateScores(
+export function calculateScores(
     eventName: string,
     numTeams: number,
     placements: number[]

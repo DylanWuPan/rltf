@@ -56,6 +56,15 @@ export default function SeasonMeetsPage({ params }: PageProps) {
     const name = newAthleteName.trim();
     if (!name) return;
 
+    const alreadyExists = roster.some(
+      (athlete) => athlete.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (alreadyExists) {
+      setRosterError(`${name} is already on the roster.`);
+      return;
+    }
+
     try {
       const res = await fetch("/api/addAthlete", {
         method: "POST",
@@ -74,7 +83,7 @@ export default function SeasonMeetsPage({ params }: PageProps) {
     } catch (e) {
       setRosterError((e as Error).message);
     }
-  }, [newAthleteName, id, fetchRoster]);
+  }, [newAthleteName, id, roster, fetchRoster]);
 
   useEffect(() => {
     fetchMeets();
@@ -198,8 +207,9 @@ export default function SeasonMeetsPage({ params }: PageProps) {
         ) : (
           <div className="w-full flex flex-col gap-4">
             {roster.map((athlete) => (
-              <div
+              <Link
                 key={athlete.id}
+                href={`/athletes/${athlete.id}`}
                 className="group relative flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow duration-200 cursor-pointer"
               >
                 <div>
@@ -210,7 +220,7 @@ export default function SeasonMeetsPage({ params }: PageProps) {
                 <div className="text-blue-500 group-hover:scale-110 transition-transform duration-200">
                   &rarr;
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
