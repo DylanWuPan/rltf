@@ -25,5 +25,10 @@ export const EventSchema = z.object({
   athlete: z.string().min(1),
   meet: z.string().uuid(),
   place: z.number().int().min(1),
-  points: z.number().int().min(0),
+  points: z.number().min(0),
+});
+
+export const DeleteIdSchema = z.object({
+  id: z.string().uuid(),
+  table: z.string(),
 });

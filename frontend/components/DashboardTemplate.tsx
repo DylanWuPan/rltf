@@ -11,6 +11,7 @@ interface DashboardTemplateProps<T> {
   addForm: ReactNode; // the form JSX to add a new item
   loading?: boolean;
   error?: string | null;
+  onDelete?: () => void;
 }
 
 export default function DashboardTemplate<T>({
@@ -21,6 +22,7 @@ export default function DashboardTemplate<T>({
   addForm,
   loading,
   error,
+  onDelete,
 }: DashboardTemplateProps<T>) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
@@ -45,6 +47,17 @@ export default function DashboardTemplate<T>({
 
         <h1 className="text-3xl font-bold"> Add New {subject}</h1>
         <section className="w-full">{addForm}</section>
+
+        {onDelete && (
+          <div className="w-full flex justify-center mt-8">
+            <button
+              onClick={onDelete}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+            >
+              Delete
+            </button>
+          </div>
+        )}
       </main>
 
       <div className="absolute top-4 right-4">

@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
 import type { Event } from "../../api/getEvents/route";
-import Link from "next/link";
 import DashboardTemplate from "@/components/DashboardTemplate";
 import { useSearchParams } from "next/navigation";
 import type { EventType } from "@/app/api/getEventTypes/route";
@@ -26,6 +25,8 @@ export default function MeetEventsPage({ params }: PageProps) {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
 
   const [rows, setRows] = useState<number[]>([0]);
+  const [isRelay, setIsRelay] = useState(false);
+  const [addingEvent, setAddingEvent] = useState(false);
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -69,7 +70,6 @@ export default function MeetEventsPage({ params }: PageProps) {
     fetchEventTypes();
   }, [fetchEvents, fetchAthletes, fetchEventTypes]);
 
-  // Group events by type so multiple athletes in the same event appear together
   const groupedEvents = events.reduce((acc: Record<string, Event[]>, ev) => {
     if (!acc[ev.type]) acc[ev.type] = [];
     acc[ev.type].push(ev);
@@ -89,28 +89,44 @@ export default function MeetEventsPage({ params }: PageProps) {
         {eventList
           .sort((a, b) => a.place - b.place)
           .map((event) => (
-            <p
+            <div
               key={event.id}
-              className="text-sm text-gray-600 dark:text-gray-400"
+              className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400"
             >
-              {event.athlete} |{" "}
-              {(() => {
-                const place = event.place;
-                const suffix =
-                  place % 100 >= 11 && place % 100 <= 13
-                    ? "th"
-                    : place % 10 === 1
-                    ? "st"
-                    : place % 10 === 2
-                    ? "nd"
-                    : place % 10 === 3
-                    ? "rd"
-                    : "th";
+              <span>
+                {event.athlete} |{" "}
+                {(() => {
+                  const place = event.place;
+                  const suffix =
+                    place % 100 >= 11 && place % 100 <= 13
+                      ? "th"
+                      : place % 10 === 1
+                      ? "st"
+                      : place % 10 === 2
+                      ? "nd"
+                      : place % 10 === 3
+                      ? "rd"
+                      : "th";
 
-                return `${place}${suffix}`;
-              })()}{" "}
-              Place | {event.points} points
-            </p>
+                  return `${place}${suffix}`;
+                })()}{" "}
+                Place | {event.points} points
+              </span>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  await fetch(`/api/deleteEntity?id=${event.id}&table=events`, {
+                    method: "DELETE",
+                  });
+                  fetchEvents();
+                }}
+                className="text-red-500 hover:text-red-700 font-bold px-2"
+                title="Delete this entry"
+              >
+                ✕
+              </button>
+            </div>
           ))}
       </div>
     </div>
@@ -120,6 +136,7 @@ export default function MeetEventsPage({ params }: PageProps) {
     <form
       onSubmit={async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setAddingEvent(true);
         const form = e.currentTarget;
 
         // Collect event type
@@ -136,17 +153,19 @@ export default function MeetEventsPage({ params }: PageProps) {
         ) as HTMLInputElement[];
 
         const athletesArray = athleteSelects.map((s) => s.value);
-        const placesArray = placeInputs.map((i) => Number(i.value));
+
+        let placesArray: number[];
+        if (isRelay) {
+          placesArray = [];
+          for (let t = 0; t < placeInputs.length; t++) {
+            const teamPlace = Number(placeInputs[t]?.value);
+            placesArray.push(teamPlace, teamPlace, teamPlace, teamPlace);
+          }
+        } else {
+          placesArray = placeInputs.map((i) => Number(i.value));
+        }
 
         const meet = id;
-
-        console.log("Adding event:", {
-          type,
-          athletesArray,
-          placesArray,
-          meet,
-          numTeams,
-        });
 
         const res = await fetch("/api/addEventToMeet", {
           method: "POST",
@@ -169,6 +188,8 @@ export default function MeetEventsPage({ params }: PageProps) {
         } else {
           setError(data.error || "Failed to add event");
         }
+
+        setAddingEvent(false);
       }}
       className="flex flex-col gap-4 bg-gray-100 dark:bg-gray-800 p-6 rounded-xl shadow"
     >
@@ -177,6 +198,17 @@ export default function MeetEventsPage({ params }: PageProps) {
         <select
           name="type"
           required
+          onChange={(e) => {
+            const value = e.target.value;
+            const relayDetected = value.toLowerCase().includes("relay");
+            setIsRelay(relayDetected);
+
+            if (relayDetected) {
+              setRows([0, 1, 2, 3]);
+            } else {
+              setRows([0]);
+            }
+          }}
           className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">Select an event...</option>
@@ -210,19 +242,25 @@ export default function MeetEventsPage({ params }: PageProps) {
               </select>
             </label>
 
-            <label className="flex flex-col text-gray-700 dark:text-gray-200 font-medium w-28">
-              Place:
-              <input
-                name="place"
-                type="number"
-                min={0}
-                step={1}
-                required
-                className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </label>
+            {(!isRelay || idx % 4 === 0) && (
+              <label className="flex flex-col text-gray-700 dark:text-gray-200 font-medium w-40">
+                {isRelay ? "Team Place:" : "Place:"}
+                <input
+                  name="place"
+                  type="number"
+                  min={0}
+                  step={1}
+                  required
+                  className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </label>
+            )}
 
-            {rows.length > 1 && (
+            {/* Delete behavior:
+                - Non-relay: delete individual athlete rows
+                - Relay: delete entire team (4 athletes) at once, only shown on first athlete of each team
+            */}
+            {!isRelay && rows.length > 1 && (
               <button
                 type="button"
                 onClick={() => setRows((prev) => prev.filter((r) => r !== idx))}
@@ -231,28 +269,74 @@ export default function MeetEventsPage({ params }: PageProps) {
                 ✕
               </button>
             )}
+
+            {isRelay && idx % 4 === 0 && rows.length > 4 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setRows((prev) => {
+                    // Remove the 4 indices that make up this relay team
+                    const teamStart = idx;
+                    return prev.filter(
+                      (r) => r < teamStart || r >= teamStart + 4
+                    );
+                  })
+                }
+                className="text-red-500 hover:text-red-700 font-bold px-2"
+                title="Delete this relay team"
+              >
+                ✕ Team
+              </button>
+            )}
           </div>
         ))}
 
-        <button
-          type="button"
-          onClick={() =>
-            setRows((prev) => [
-              ...prev,
-              prev.length ? prev[prev.length - 1] + 1 : 0,
-            ])
-          }
-          className="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-900 dark:text-gray-100 px-3 py-2 rounded-lg transition-colors duration-200"
-        >
-          + Add Another Athlete
-        </button>
+        {!isRelay && (
+          <button
+            type="button"
+            onClick={() =>
+              setRows((prev) => [
+                ...prev,
+                prev.length ? prev[prev.length - 1] + 1 : 0,
+              ])
+            }
+            className="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-900 dark:text-gray-100 px-3 py-2 rounded-lg transition-colors duration-200"
+          >
+            + Add Another Athlete
+          </button>
+        )}
+
+        {isRelay && (
+          <button
+            type="button"
+            onClick={() =>
+              setRows((prev) => {
+                const nextIndex = prev.length;
+                return [
+                  ...prev,
+                  nextIndex,
+                  nextIndex + 1,
+                  nextIndex + 2,
+                  nextIndex + 3,
+                ];
+              })
+            }
+            className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition-colors duration-200"
+          >
+            + Add Another Relay Team
+          </button>
+        )}
       </div>
 
       <button
         type="submit"
-        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+        disabled={addingEvent}
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-2"
       >
-        Add Event
+        {addingEvent && (
+          <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+        )}
+        {addingEvent ? "Adding..." : "Add Event"}
       </button>
     </form>
   );
