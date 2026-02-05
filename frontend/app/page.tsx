@@ -21,6 +21,7 @@ export default function SeasonsPage() {
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [addingSeason, setAddingSeason] = useState(false);
 
   const fetchUser = useCallback(async () => {
     const { data } = await supabase.auth.getUser();
@@ -84,6 +85,7 @@ export default function SeasonsPage() {
     <form
       onSubmit={async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setAddingSeason(true);
         const form = e.currentTarget;
         const formData = new FormData(form);
 
@@ -98,7 +100,7 @@ export default function SeasonsPage() {
         const res = await fetch("/api/addSeason", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, start, end, user }),
+          body: JSON.stringify({ name, start, end, user: user?.id }),
         });
 
         const data = await res.json();
@@ -109,6 +111,8 @@ export default function SeasonsPage() {
         } else {
           setError(data.error || "Failed to add season");
         }
+
+        setAddingSeason(false);
       }}
       className="flex flex-col gap-4 bg-gray-100 dark:bg-gray-800 p-6 rounded-xl shadow"
     >
@@ -141,9 +145,13 @@ export default function SeasonsPage() {
       </label>
       <button
         type="submit"
-        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+        disabled={addingSeason}
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-2"
       >
-        Add Season
+        {addingSeason && (
+          <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+        )}
+        {addingSeason ? "Adding..." : "Add Season"}
       </button>
     </form>
   );

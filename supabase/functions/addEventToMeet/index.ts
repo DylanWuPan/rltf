@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { meet, athlete, type, points, place } = parsedBody.data;
+    const { meet, athlete, type, points, place, details } = parsedBody.data;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
 
     const { data, error } = await supabase
       .from("events")
-      .insert({ meet, athlete, type, points, place })
+      .insert({ meet, athlete, type, points, place, details })
       .select()
       .single();
 

@@ -6,6 +6,7 @@ export type Event = {
   type: string;
   place: number;
   points: number;
+  details?: string;
 };
 
 export async function GET(request: Request) {

@@ -26,6 +26,7 @@ export const EventSchema = z.object({
   meet: z.string().uuid(),
   place: z.number().int().min(1),
   points: z.number().min(0),
+  details: z.string().optional(),
 });
 
 export const DeleteIdSchema = z.object({

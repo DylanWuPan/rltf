@@ -7,7 +7,6 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 export async function POST(req: Request) {
   try {
     const { name, start, end, user } = await req.json(); 
-    console.log("addSeason called with:", { name, start, end, user });
 
     if (!name || !start || !end || !user) {
       return NextResponse.json(

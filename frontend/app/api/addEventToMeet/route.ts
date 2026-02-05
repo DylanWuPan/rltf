@@ -6,7 +6,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export async function POST(req: Request) {
   try {
-    const { type, athletes, places, meet, numTeams } = await req.json();
+    const { type, athletes, places, meet, numTeams, details } = await req.json();
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       return NextResponse.json(
@@ -32,6 +32,7 @@ export async function POST(req: Request) {
             meet,
             place: places[i],
             points: points[i],
+            details: details[i],
           }),
         }
       );

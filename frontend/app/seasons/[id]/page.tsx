@@ -18,6 +18,8 @@ export default function SeasonMeetsPage({ params }: PageProps) {
   const [meets, setMeets] = useState<Meet[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [addingMeet, setAddingMeet] = useState(false);
+  const [addingAthlete, setAddingAthlete] = useState(false);
 
   const [roster, setRoster] = useState<Athlete[]>([]);
   const [rosterLoading, setRosterLoading] = useState(false);
@@ -53,6 +55,7 @@ export default function SeasonMeetsPage({ params }: PageProps) {
   }, [id]);
 
   const addAthlete = useCallback(async () => {
+    setAddingAthlete(true);
     const name = newAthleteName.trim();
     if (!name) return;
 
@@ -83,6 +86,7 @@ export default function SeasonMeetsPage({ params }: PageProps) {
     } catch (e) {
       setRosterError((e as Error).message);
     }
+    setAddingAthlete(false);
   }, [newAthleteName, id, roster, fetchRoster]);
 
   useEffect(() => {
@@ -95,7 +99,12 @@ export default function SeasonMeetsPage({ params }: PageProps) {
       key={meet.id}
       href={{
         pathname: `/meets/${meet.id}`,
-        query: { name: meet.name, season: id, num_teams: meet.num_teams },
+        query: {
+          name: meet.name,
+          season: id,
+          seasonName,
+          num_teams: meet.num_teams,
+        },
       }}
       className="group relative flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow duration-200 cursor-pointer mb-4"
     >
@@ -118,6 +127,8 @@ export default function SeasonMeetsPage({ params }: PageProps) {
     <form
       onSubmit={async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setAddingMeet(true);
+
         const form = e.currentTarget;
         const formData = new FormData(form);
 
@@ -143,6 +154,7 @@ export default function SeasonMeetsPage({ params }: PageProps) {
         } else {
           setError(data.error || "Failed to add meet");
         }
+        setAddingMeet(false);
       }}
       className="flex flex-col gap-4 bg-gray-100 dark:bg-gray-800 p-6 rounded-xl shadow"
     >
@@ -184,9 +196,13 @@ export default function SeasonMeetsPage({ params }: PageProps) {
       </label>
       <button
         type="submit"
-        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+        disabled={addingMeet}
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-2"
       >
-        Add Meet
+        {addingMeet && (
+          <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+        )}
+        {addingMeet ? "Adding..." : "Add Meet"}
       </button>
     </form>
   );
@@ -226,7 +242,7 @@ export default function SeasonMeetsPage({ params }: PageProps) {
         )}
 
         {/* Add athlete */}
-        <div className="mt-6 w-full">
+        <div className="mb-15 w-full">
           <div className="relative flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow">
             <input
               value={newAthleteName}
@@ -241,16 +257,28 @@ export default function SeasonMeetsPage({ params }: PageProps) {
               }}
             />
             <button
+              type="submit"
+              disabled={addingAthlete}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap shrink-0"
               onClick={addAthlete}
-              className="ml-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
             >
-              Add
+              {addingAthlete && (
+                <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+              )}
+              {addingAthlete ? "Adding..." : "Add Athlete"}
             </button>
           </div>
         </div>
       </main>
     </div>
   );
+
+  const onDelete = async () => {
+    await fetch(`/api/deleteEntity?id=${id}&table=seasons`, {
+      method: "DELETE",
+    });
+    window.location.href = "/";
+  };
 
   return (
     <>
@@ -262,6 +290,7 @@ export default function SeasonMeetsPage({ params }: PageProps) {
         addForm={addForm}
         loading={loading}
         error={error}
+        onDelete={onDelete}
       />
 
       {rosterSection}

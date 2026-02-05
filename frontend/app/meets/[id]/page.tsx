@@ -15,6 +15,7 @@ export default function MeetEventsPage({ params }: PageProps) {
   const searchParams = useSearchParams();
   const meetName = searchParams.get("name");
   const seasonId = searchParams.get("season");
+  const seasonName = searchParams.get("seasonName");
   const numTeams = Number(searchParams.get("num_teams"));
 
   const [events, setEvents] = useState<Event[]>([]);
@@ -27,6 +28,9 @@ export default function MeetEventsPage({ params }: PageProps) {
   const [rows, setRows] = useState<number[]>([0]);
   const [isRelay, setIsRelay] = useState(false);
   const [addingEvent, setAddingEvent] = useState(false);
+  const [details, setDetails] = useState("");
+  const [eventSelected, setEventSelected] = useState(false);
+  const [relayPlaces, setRelayPlaces] = useState<Record<number, number>>({});
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -110,7 +114,8 @@ export default function MeetEventsPage({ params }: PageProps) {
 
                   return `${place}${suffix}`;
                 })()}{" "}
-                Place | {event.points} points
+                Place | {event.points} points{" "}
+                {event.details && `| ${event.details}`}
               </span>
 
               <button
@@ -141,7 +146,7 @@ export default function MeetEventsPage({ params }: PageProps) {
 
         // Collect event type
         const formData = new FormData(form);
-        const type = formData.get("type")?.toString() || "";
+        const type = formData.get("event")?.toString() || "";
 
         // Collect multiple athlete/place pairs
         const athleteSelects = Array.from(
@@ -152,18 +157,13 @@ export default function MeetEventsPage({ params }: PageProps) {
           form.querySelectorAll("input[name='place']")
         ) as HTMLInputElement[];
 
-        const athletesArray = athleteSelects.map((s) => s.value);
+        const detailsInputs = Array.from(
+          form.querySelectorAll("input[name='details']")
+        ) as HTMLInputElement[];
 
-        let placesArray: number[];
-        if (isRelay) {
-          placesArray = [];
-          for (let t = 0; t < placeInputs.length; t++) {
-            const teamPlace = Number(placeInputs[t]?.value);
-            placesArray.push(teamPlace, teamPlace, teamPlace, teamPlace);
-          }
-        } else {
-          placesArray = placeInputs.map((i) => Number(i.value));
-        }
+        const athletesArray = athleteSelects.map((s) => s.value);
+        const placesArray: number[] = placeInputs.map((i) => Number(i.value));
+        const detailsArray: string[] = detailsInputs.map((i) => i.value);
 
         const meet = id;
 
@@ -176,6 +176,7 @@ export default function MeetEventsPage({ params }: PageProps) {
             places: placesArray,
             meet,
             numTeams,
+            details: detailsArray,
           }),
         });
 
@@ -185,6 +186,8 @@ export default function MeetEventsPage({ params }: PageProps) {
           form.reset();
           setRows([0]);
           setError(null);
+          setDetails("");
+          setRelayPlaces({});
         } else {
           setError(data.error || "Failed to add event");
         }
@@ -194,12 +197,14 @@ export default function MeetEventsPage({ params }: PageProps) {
       className="flex flex-col gap-4 bg-gray-100 dark:bg-gray-800 p-6 rounded-xl shadow"
     >
       <label className="flex flex-col text-gray-700 dark:text-gray-200 font-medium">
-        Type:
+        Event:
         <select
-          name="type"
+          name="event"
           required
           onChange={(e) => {
             const value = e.target.value;
+            setEventSelected(!!value);
+
             const relayDetected = value.toLowerCase().includes("relay");
             setIsRelay(relayDetected);
 
@@ -220,113 +225,143 @@ export default function MeetEventsPage({ params }: PageProps) {
         </select>
       </label>
 
-      <div className="flex flex-col gap-3">
-        {rows.map((idx) => (
-          <div
-            key={idx}
-            className="flex flex-row gap-3 items-end bg-white/50 dark:bg-gray-700/50 p-3 rounded-lg"
-          >
-            <label className="flex flex-col text-gray-700 dark:text-gray-200 font-medium flex-1">
-              Athlete:
-              <select
-                name="athlete"
-                required
-                className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select an athlete...</option>
-                {athletes.map((athlete) => (
-                  <option key={athlete.id} value={athlete.name}>
-                    {athlete.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+      {eventSelected && (
+        <div className="flex flex-col gap-3">
+          {rows.map((idx) => (
+            <div
+              key={idx}
+              className="flex flex-row gap-2 items-end bg-white/50 dark:bg-gray-700/50 p-2 rounded-lg"
+            >
+              <label className="flex flex-col text-gray-700 dark:text-gray-200 font-medium w-65">
+                Athlete:
+                <select
+                  name="athlete"
+                  required
+                  className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select an athlete...</option>
+                  {athletes.map((athlete) => (
+                    <option key={athlete.id} value={athlete.name}>
+                      {athlete.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-            {(!isRelay || idx % 4 === 0) && (
-              <label className="flex flex-col text-gray-700 dark:text-gray-200 font-medium w-40">
-                {isRelay ? "Team Place:" : "Place:"}
+              <label className="flex flex-col text-gray-700 dark:text-gray-200 font-medium w-20">
+                Place:
                 <input
                   name="place"
                   type="number"
-                  min={0}
+                  min={-1}
                   step={1}
                   required
-                  className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={
+                    isRelay
+                      ? relayPlaces[Math.floor(idx / 4) * 4] ?? ""
+                      : undefined
+                  }
+                  onChange={(e) => {
+                    if (isRelay) {
+                      const teamStart = Math.floor(idx / 4) * 4;
+                      const value = e.target.value;
+
+                      setRelayPlaces((prev) => {
+                        const next = { ...prev };
+
+                        if (value === "") {
+                          delete next[teamStart];
+                        } else {
+                          next[teamStart] = Number(value);
+                        }
+
+                        return next;
+                      });
+                    }
+                  }}
+                  className="mt-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </label>
-            )}
 
-            {/* Delete behavior:
-                - Non-relay: delete individual athlete rows
-                - Relay: delete entire team (4 athletes) at once, only shown on first athlete of each team
-            */}
-            {!isRelay && rows.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setRows((prev) => prev.filter((r) => r !== idx))}
-                className="text-red-500 hover:text-red-700 font-bold px-2"
-              >
-                ✕
-              </button>
-            )}
+              <label className="flex flex-col text-gray-700 dark:text-gray-200 font-medium w-40">
+                Details:
+                <input
+                  name="details"
+                  type="text"
+                  className="mt-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </label>
 
-            {isRelay && idx % 4 === 0 && rows.length > 4 && (
-              <button
-                type="button"
-                onClick={() =>
-                  setRows((prev) => {
-                    // Remove the 4 indices that make up this relay team
-                    const teamStart = idx;
-                    return prev.filter(
-                      (r) => r < teamStart || r >= teamStart + 4
-                    );
-                  })
-                }
-                className="text-red-500 hover:text-red-700 font-bold px-2"
-                title="Delete this relay team"
-              >
-                ✕ Team
-              </button>
-            )}
-          </div>
-        ))}
+              {!isRelay && rows.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setRows((prev) => prev.filter((r) => r !== idx))
+                  }
+                  className="text-red-500 hover:text-red-700 font-bold px-2"
+                >
+                  ✕
+                </button>
+              )}
 
-        {!isRelay && (
-          <button
-            type="button"
-            onClick={() =>
-              setRows((prev) => [
-                ...prev,
-                prev.length ? prev[prev.length - 1] + 1 : 0,
-              ])
-            }
-            className="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-900 dark:text-gray-100 px-3 py-2 rounded-lg transition-colors duration-200"
-          >
-            + Add Another Athlete
-          </button>
-        )}
+              {isRelay && idx % 4 === 0 && rows.length > 4 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setRows((prev) => {
+                      // Remove the 4 indices that make up this relay team
+                      const teamStart = idx;
+                      return prev.filter(
+                        (r) => r < teamStart || r >= teamStart + 4
+                      );
+                    })
+                  }
+                  className="text-red-500 hover:text-red-700 font-bold px-2"
+                  title="Delete this relay team"
+                >
+                  ✕ Team
+                </button>
+              )}
+            </div>
+          ))}
 
-        {isRelay && (
-          <button
-            type="button"
-            onClick={() =>
-              setRows((prev) => {
-                const nextIndex = prev.length;
-                return [
+          {!isRelay && (
+            <button
+              type="button"
+              onClick={() =>
+                setRows((prev) => [
                   ...prev,
-                  nextIndex,
-                  nextIndex + 1,
-                  nextIndex + 2,
-                  nextIndex + 3,
-                ];
-              })
-            }
-            className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition-colors duration-200"
-          >
-            + Add Another Relay Team
-          </button>
-        )}
-      </div>
+                  prev.length ? prev[prev.length - 1] + 1 : 0,
+                ])
+              }
+              className="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-900 dark:text-gray-100 px-3 py-2 rounded-lg transition-colors duration-200"
+            >
+              + Add Another Athlete
+            </button>
+          )}
+
+          {isRelay && (
+            <button
+              type="button"
+              onClick={() =>
+                setRows((prev) => {
+                  const nextIndex = prev.length;
+                  return [
+                    ...prev,
+                    nextIndex,
+                    nextIndex + 1,
+                    nextIndex + 2,
+                    nextIndex + 3,
+                  ];
+                })
+              }
+              className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition-colors duration-200"
+            >
+              + Add Another Relay Team
+            </button>
+          )}
+        </div>
+      )}
 
       <button
         type="submit"
@@ -341,6 +376,13 @@ export default function MeetEventsPage({ params }: PageProps) {
     </form>
   );
 
+  const onDelete = async () => {
+    await fetch(`/api/deleteEntity?id=${id}&table=meets`, {
+      method: "DELETE",
+    });
+    window.location.href = "/seasons/" + seasonId + `?name=${seasonName}`;
+  };
+
   return (
     <DashboardTemplate
       title={meetName ? `${meetName}` : "Meet"}
@@ -350,6 +392,7 @@ export default function MeetEventsPage({ params }: PageProps) {
       addForm={addForm}
       loading={loading}
       error={error}
+      onDelete={onDelete}
     />
   );
 }
