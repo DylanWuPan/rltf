@@ -6,7 +6,9 @@ import { useSearchParams } from "next/navigation";
 import type { EventType } from "@/app/api/getEventTypes/route";
 import type { Athlete } from "@/app/api/getAthletes/route";
 
-const parseTimeToSeconds = (value: string | number | null | undefined): number | null => {
+const parseTimeToSeconds = (
+  value: string | number | null | undefined
+): number | null => {
   if (value === null || value === undefined) return null;
   if (typeof value === "number") return value;
 
@@ -36,7 +38,7 @@ interface PageProps {
 export default function AthletePage({ params }: PageProps) {
   const { id } = params;
   const searchParams = useSearchParams();
-  const seasonId = searchParams.get("season");
+  const athleteName = searchParams.get("name");
 
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
@@ -63,7 +65,9 @@ export default function AthletePage({ params }: PageProps) {
       setTotalPoints(points);
       const prMap: Record<string, number> = {};
       data.forEach((ev: Event) => {
-        const time = parseTimeToSeconds(ev.detail ?? (ev as any).result ?? "N/A");
+        const time = parseTimeToSeconds(
+          ev.detail ?? (ev as any).result ?? "N/A"
+        );
         if (time === null) return;
         if (prMap[ev.type] === undefined || time < prMap[ev.type]) {
           prMap[ev.type] = time;
@@ -98,7 +102,12 @@ export default function AthletePage({ params }: PageProps) {
       if (found) {
         setAthlete({
           ...found,
-          name: found.name || `${(found as any).firstName || ""} ${(found as any).lastName || ""}`.trim() || "Unknown Athlete",
+          name:
+            found.name ||
+            `${(found as any).firstName || ""} ${
+              (found as any).lastName || ""
+            }`.trim() ||
+            "Unknown Athlete",
         });
       } else {
         setAthlete(null);
@@ -164,7 +173,9 @@ export default function AthletePage({ params }: PageProps) {
               <span className="text-sm text-gray-500 dark:text-gray-400">
                 PRs:{" "}
                 {Object.entries(prs)
-                  .map(([type, value]) => value != null ? `${type}: ${value}` : null)
+                  .map(([type, value]) =>
+                    value != null ? `${type}: ${value}` : null
+                  )
                   .filter(Boolean)
                   .join(" · ")}
               </span>
@@ -182,7 +193,9 @@ export default function AthletePage({ params }: PageProps) {
           className="p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow mb-4"
         >
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            {event.type} | Time: {event.detail ?? (event as any).result ?? "N/A"} | {event.points} points
+            {event.type} | Time:{" "}
+            {event.detail ?? (event as any).result ?? "N/A"} | {event.points}{" "}
+            points
           </span>
         </div>
       )}
