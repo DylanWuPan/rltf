@@ -21,7 +21,7 @@ export default function AthletePage({ params }: PageProps) {
     const fetchEvents = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/getEvents?athlete=${id}`);
+        const response = await fetch(`/api/getEvents?id=${id}&target=athlete`);
         if (!response.ok) throw new Error("Failed to fetch events");
         const data = await response.json();
         setEvents(data);

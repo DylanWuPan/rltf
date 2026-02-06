@@ -35,7 +35,7 @@ export default function MeetEventsPage({ params }: PageProps) {
   const fetchEvents = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/getEvents?meet=${id}`);
+      const response = await fetch(`/api/getEvents?id=${id}&target=meet`);
       if (!response.ok) throw new Error("Failed to fetch events");
       const data = await response.json();
       setEvents(data);
@@ -167,7 +167,7 @@ export default function MeetEventsPage({ params }: PageProps) {
 
         const meet = id;
 
-        const res = await fetch("/api/addEventToMeet", {
+        const res = await fetch("/api/addEvent", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
