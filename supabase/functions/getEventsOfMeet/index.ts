@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { data, error } = await supabaseClient
+    const { data: events, error } = await supabaseClient
       .from("events")
       .select("id, type, athlete, place, points, details")
       .eq("meet", meet)
@@ -25,10 +25,32 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log("Events fetched:", data);
+    const athleteIds = [...new Set(events.map(event => event.athlete))];
+
+    const { data: athletes, error: athleteError } = await supabaseClient
+      .from("athletes")
+      .select("id, name")
+      .in("id", athleteIds);
+
+    if (athleteError) {
+      return new Response(
+        JSON.stringify({ error: athleteError.message }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    const athleteMap = Object.fromEntries(
+      athletes.map(a => [a.id, a.name])
+    );
+
+    // Replace athlete ID with athlete name on each event
+    const enrichedEvents = events.map(event => ({
+      ...event,
+      athlete: athleteMap[event.athlete] ?? event.athlete,
+    }));
 
     return new Response(
-      JSON.stringify({ success: true, data }),
+      JSON.stringify({ success: true, data: enrichedEvents }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (err) {

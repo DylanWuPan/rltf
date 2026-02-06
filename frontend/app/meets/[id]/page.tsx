@@ -241,7 +241,7 @@ export default function MeetEventsPage({ params }: PageProps) {
                 >
                   <option value="">Select an athlete...</option>
                   {athletes.map((athlete) => (
-                    <option key={athlete.id} value={athlete.name}>
+                    <option key={athlete.id} value={athlete.id}>
                       {athlete.name}
                     </option>
                   ))}
