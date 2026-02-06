@@ -69,7 +69,9 @@ export default function DashboardTemplate<T>({
           )}
         </section>
 
-        <h1 className="text-3xl font-bold"> Add New {subject}</h1>
+        {addForm && (
+          <h1 className="text-3xl font-bold">Add New {subject}</h1>
+        )}
         <section className="w-full">{addForm}</section>
       </main>
 
