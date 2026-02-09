@@ -1,5 +1,6 @@
 "use client";
 import { ReactNode, useState } from "react";
+import { useRouter } from "next/navigation";
 import { LogoutButton } from "./logout-button";
 import { Button } from "./ui/button";
 
@@ -9,9 +10,11 @@ interface DashboardTemplateProps<T> {
   items: T[];
   renderItem: (item: T) => ReactNode; // how to render each row
   addForm: ReactNode; // the form JSX to add a new item
+  links?: ReactNode;
   loading?: boolean;
   error?: string | null;
   onDelete?: () => void;
+  hideBackButton?: boolean;
 }
 
 export default function DashboardTemplate<T>({
@@ -20,11 +23,14 @@ export default function DashboardTemplate<T>({
   items,
   renderItem,
   addForm,
+  links,
   loading,
   error,
   onDelete,
+  hideBackButton,
 }: DashboardTemplateProps<T>) {
   const [deleting, setDeleting] = useState(false);
+  const router = useRouter();
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
@@ -51,9 +57,54 @@ export default function DashboardTemplate<T>({
       )}
 
       <main className="relative flex min-h-screen w-full max-w-3xl flex-col items-start gap-8 py-32 px-16 bg-white dark:bg-black">
-        <h1 className="text-4xl font-bold">{title}</h1>
+        {!hideBackButton && (
+          <button
+            onClick={() => router.back()}
+            className="absolute top-8 left-8 text-sm text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
+          >
+            ← Back
+          </button>
+        )}
 
-        <h1 className="text-3xl font-bold">Existing {subject}</h1>
+        <div className="w-full flex flex-col gap-4">
+          <h1 className="text-4xl font-bold">{title}</h1>
+
+          {/* Bubble navigation */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                document
+                  .getElementById("existing")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" })
+              }
+              className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
+            >
+              <span className="text-xs">↗</span>
+              View Existing {subject}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                document
+                  .getElementById("add-new")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" })
+              }
+              className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
+            >
+              <span className="text-xs">↗</span>
+              Add New {subject}
+            </button>
+            {links}
+          </div>
+
+          {/* Divider */}
+          <div className="w-full h-px bg-zinc-200 dark:bg-zinc-800" />
+        </div>
+
+        <h1 id="existing" className="text-3xl font-bold pt-10">
+          View Existing {subject}
+        </h1>
 
         {/* Error */}
         {error && <p className="text-red-600 mb-2">{error}</p>}
@@ -70,7 +121,9 @@ export default function DashboardTemplate<T>({
         </section>
 
         {addForm && (
-          <h1 className="text-3xl font-bold">Add New {subject}</h1>
+          <h1 id="add-new" className="text-3xl font-bold pt-10">
+            Add New {subject}
+          </h1>
         )}
         <section className="w-full">{addForm}</section>
       </main>
