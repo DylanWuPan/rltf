@@ -65,6 +65,7 @@ export default function SeasonMeetsPage({ params }: PageProps) {
 
     if (alreadyExists) {
       setRosterError(`${name} is already on the roster.`);
+      setAddingAthlete(false);
       return;
     }
 
@@ -209,11 +210,11 @@ export default function SeasonMeetsPage({ params }: PageProps) {
 
   const rosterSection = (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-start gap-8 px-16 bg-white dark:bg-black">
+      <main
+        id="roster-section"
+        className="flex min-h-screen w-full max-w-3xl flex-col items-start gap-8 px-16 bg-white dark:bg-black pt-10"
+      >
         <h1 className="text-3xl font-bold">Team Roster</h1>
-
-        {/* Error */}
-        {rosterError && <p className="text-red-600 mb-2">{rosterError}</p>}
 
         {/* List of athletes */}
         {rosterLoading ? (
@@ -247,7 +248,7 @@ export default function SeasonMeetsPage({ params }: PageProps) {
         )}
 
         {/* Add athlete */}
-        <div className="mb-15 w-full">
+        <div className="w-full">
           <div className="relative flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow">
             <input
               value={newAthleteName}
@@ -274,6 +275,11 @@ export default function SeasonMeetsPage({ params }: PageProps) {
             </button>
           </div>
         </div>
+
+        {/* Error */}
+        {rosterError && (
+          <p className="text-red-600 mb-2 text-center w-full">{rosterError}</p>
+        )}
       </main>
     </div>
   );
@@ -285,6 +291,21 @@ export default function SeasonMeetsPage({ params }: PageProps) {
     window.location.href = "/";
   };
 
+  const links = (
+    <button
+      type="button"
+      onClick={() =>
+        document
+          .getElementById("roster-section")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" })
+      }
+      className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
+    >
+      <span className="text-xs">↗</span>
+      View Team Roster
+    </button>
+  );
+
   return (
     <>
       <DashboardTemplate
@@ -293,6 +314,7 @@ export default function SeasonMeetsPage({ params }: PageProps) {
         items={meets}
         renderItem={renderItem}
         addForm={addForm}
+        links={links}
         loading={loading}
         error={error}
         onDelete={onDelete}

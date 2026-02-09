@@ -165,6 +165,7 @@ export default function SeasonsPage() {
       addForm={addForm}
       loading={loading}
       error={error}
+      hideBackButton={true}
     />
   );
 }
