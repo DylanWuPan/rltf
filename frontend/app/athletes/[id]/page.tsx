@@ -39,17 +39,7 @@ export default function AthletePage() {
     <div className="flex flex-col gap-4">
       <div className="h-px w-full bg-gray-300 dark:bg-gray-700" />
       <DashboardTemplate
-        title={
-          <div className="flex flex-col gap-1">
-            <span className="text-xl font-bold">{athleteName}</span>
-            <div className="text-sm text-gray-600 dark:text-gray-400 flex gap-6 flex-wrap">
-              <span>Season Points: {totalPoints}</span>
-              <span>
-                Season PR - {events.map(ev => `${ev.type}`).join(' | ')}
-              </span>
-            </div>
-          </div>
-        }
+        title={athleteName}
         subject="Previous Events"
         items={events}
         renderItem={(event) => (
@@ -59,7 +49,15 @@ export default function AthletePage() {
           >
             <span className="text-sm text-gray-600 dark:text-gray-400">
               {event.type} | Place: {event.place}
-              {event.place === 1 ? "st" : event.place === 2 ? "nd" : event.place === 3 ? "rd" : "th"} | Points: {event.points} | Details: {event.details != null ? event.details : "N/A"}
+              {event.place === 1
+                ? "st"
+                : event.place === 2
+                ? "nd"
+                : event.place === 3
+                ? "rd"
+                : "th"}{" "}
+              | Points: {event.points} | Details:{" "}
+              {event.details != null ? event.details : "N/A"}
             </span>
           </div>
         )}
