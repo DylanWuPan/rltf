@@ -64,6 +64,13 @@ export default function AthletePage() {
         addForm={null}
         loading={loading}
         error={error}
+        moreInfo={
+          <div className="p-4 bg-blue-100 dark:bg-blue-800 rounded-xl shadow">
+            <h2 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
+              Total Points: {totalPoints}
+            </h2>
+          </div>
+        }
       />
     </div>
   );

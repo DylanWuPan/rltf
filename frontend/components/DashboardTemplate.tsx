@@ -15,6 +15,7 @@ interface DashboardTemplateProps<T> {
   error?: string | null;
   onDelete?: () => void;
   hideBackButton?: boolean;
+  moreInfo?: ReactNode;
 }
 
 export default function DashboardTemplate<T>({
@@ -28,6 +29,7 @@ export default function DashboardTemplate<T>({
   error,
   onDelete,
   hideBackButton,
+  moreInfo,
 }: DashboardTemplateProps<T>) {
   const [deleting, setDeleting] = useState(false);
   const router = useRouter();
@@ -101,6 +103,8 @@ export default function DashboardTemplate<T>({
           {/* Divider */}
           <div className="w-full h-px bg-zinc-200 dark:bg-zinc-800" />
         </div>
+
+        {moreInfo}
 
         <h1 id="existing" className="text-3xl font-bold pt-10">
           View Existing {subject}
