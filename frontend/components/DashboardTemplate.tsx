@@ -16,6 +16,9 @@ interface DashboardTemplateProps<T> {
   onDelete?: () => void;
   hideBackButton?: boolean;
   moreInfo?: ReactNode;
+  rosterSection?: ReactNode;
+  viewLink?: boolean;
+  addLink?: boolean;
 }
 
 export default function DashboardTemplate<T>({
@@ -30,34 +33,15 @@ export default function DashboardTemplate<T>({
   onDelete,
   hideBackButton,
   moreInfo,
+  rosterSection,
+  viewLink = true,
+  addLink = true,
 }: DashboardTemplateProps<T>) {
   const [deleting, setDeleting] = useState(false);
   const router = useRouter();
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      {onDelete && (
-        <div className="absolute top-4 left-4">
-          <Button
-            disabled={deleting}
-            onClick={async () => {
-              setDeleting(true);
-              try {
-                await onDelete();
-              } finally {
-                setDeleting(false);
-              }
-            }}
-            className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2 disabled:opacity-60"
-          >
-            {deleting && (
-              <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-            )}
-            {deleting ? "Deleting…" : `Delete ${title}`}
-          </Button>
-        </div>
-      )}
-
       <main className="relative flex min-h-screen w-full max-w-3xl flex-col items-start gap-8 py-32 px-16 bg-white dark:bg-black">
         {!hideBackButton && (
           <button
@@ -73,30 +57,34 @@ export default function DashboardTemplate<T>({
 
           {/* Bubble navigation */}
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() =>
-                document
-                  .getElementById("existing")
-                  ?.scrollIntoView({ behavior: "smooth", block: "start" })
-              }
-              className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
-            >
-              <span className="text-xs">↗</span>
-              View Existing {subject}
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                document
-                  .getElementById("add-new")
-                  ?.scrollIntoView({ behavior: "smooth", block: "start" })
-              }
-              className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
-            >
-              <span className="text-xs">↗</span>
-              Add New {subject}
-            </button>
+            {viewLink && (
+              <button
+                type="button"
+                onClick={() =>
+                  document
+                    .getElementById("existing")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+                className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
+              >
+                <span className="text-xs">↗</span>
+                View Existing {subject}
+              </button>
+            )}
+            {addLink && (
+              <button
+                type="button"
+                onClick={() =>
+                  document
+                    .getElementById("add-new")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+                className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
+              >
+                <span className="text-xs">↗</span>
+                Add New {subject}
+              </button>
+            )}
             {links}
           </div>
 
@@ -130,6 +118,35 @@ export default function DashboardTemplate<T>({
           </h1>
         )}
         <section className="w-full">{addForm}</section>
+
+        {rosterSection && (
+          <h1 id="roster-section" className="text-3xl font-bold pt-10">
+            Team Roster
+          </h1>
+        )}
+        <section className="w-full">{rosterSection}</section>
+
+        {onDelete && (
+          <div className="mt-15 w-full flex justify-center">
+            <Button
+              disabled={deleting}
+              onClick={async () => {
+                setDeleting(true);
+                try {
+                  await onDelete();
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2 disabled:opacity-60"
+            >
+              {deleting && (
+                <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+              )}
+              {deleting ? "Deleting…" : `Delete ${title}`}
+            </Button>
+          </div>
+        )}
       </main>
 
       <div className="absolute top-4 right-4">

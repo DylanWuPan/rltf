@@ -36,42 +36,40 @@ export default function AthletePage() {
   const totalPoints = events.reduce((sum, ev) => sum + (ev.points || 0), 0);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="h-px w-full bg-gray-300 dark:bg-gray-700" />
-      <DashboardTemplate
-        title={athleteName}
-        subject="Previous Events"
-        items={events}
-        renderItem={(event) => (
-          <div
-            key={event.id}
-            className="p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow mb-4"
-          >
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              {event.type} | Place: {event.place}
-              {event.place === 1
-                ? "st"
-                : event.place === 2
-                ? "nd"
-                : event.place === 3
-                ? "rd"
-                : "th"}{" "}
-              | Points: {event.points} | Details:{" "}
-              {event.details != null ? event.details : "N/A"}
-            </span>
-          </div>
-        )}
-        addForm={null}
-        loading={loading}
-        error={error}
-        moreInfo={
-          <div className="p-4 bg-blue-100 dark:bg-blue-800 rounded-xl shadow">
-            <h2 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
-              Total Points: {totalPoints}
-            </h2>
-          </div>
-        }
-      />
-    </div>
+    <DashboardTemplate
+      title={athleteName}
+      subject="Events"
+      items={events}
+      renderItem={(event) => (
+        <div
+          key={event.id}
+          className="p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow mb-4"
+        >
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            {event.type} | Place: {event.place}
+            {event.place === 1
+              ? "st"
+              : event.place === 2
+              ? "nd"
+              : event.place === 3
+              ? "rd"
+              : "th"}{" "}
+            | Points: {event.points} | Details:{" "}
+            {event.details != null ? event.details : "N/A"}
+          </span>
+        </div>
+      )}
+      addForm={null}
+      loading={loading}
+      error={error}
+      moreInfo={
+        <div className="p-4 bg-blue-100 dark:bg-blue-800 rounded-xl shadow">
+          <h2 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
+            Total Points: {totalPoints}
+          </h2>
+        </div>
+      }
+      addLink={false}
+    />
   );
 }
