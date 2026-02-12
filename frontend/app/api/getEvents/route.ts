@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 
 export type Event = {
   id: string;
-  athlete: string;
+  athlete?: {id: string, name: string};
   type: string;
   place: number;
   points: number;
   details?: string;
   created_at?: string;
+  meet?: {id: string, name: string}
 };
 
 export async function GET(request: Request) {

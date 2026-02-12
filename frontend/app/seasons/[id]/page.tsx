@@ -283,8 +283,10 @@ export default function SeasonMeetsPage({ params }: PageProps) {
   );
 
   const onDelete = async () => {
-    const confirmed = window.confirm(`Are you sure you want to delete ${seasonName}?`);
-          if (!confirmed) return;
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${seasonName}?`
+    );
+    if (!confirmed) return;
     await fetch(`/api/deleteEntity?id=${id}&table=seasons`, {
       method: "DELETE",
     });
