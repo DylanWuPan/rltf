@@ -118,19 +118,6 @@ export default function MeetEventsPage({ params }: PageProps) {
                 {event.details && `| ${event.details}`}
               </span>
 
-              <button
-                type="button"
-                onClick={async () => {
-                  await fetch(`/api/deleteEntity?id=${event.id}&table=events`, {
-                    method: "DELETE",
-                  });
-                  fetchEvents();
-                }}
-                className="text-red-500 hover:text-red-700 font-bold px-2"
-                title="Delete this entry"
-              >
-                ✕
-              </button>
             </div>
           ))}
       </div>
@@ -377,6 +364,8 @@ export default function MeetEventsPage({ params }: PageProps) {
   );
 
   const onDelete = async () => {
+    const confirmed = window.confirm(`Are you sure you want to delete ${meetName}?`);
+          if (!confirmed) return;
     await fetch(`/api/deleteEntity?id=${id}&table=meets`, {
       method: "DELETE",
     });

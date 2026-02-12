@@ -85,18 +85,20 @@ export default function DashboardTemplate<T>({
               <span className="text-xs">↗</span>
               View Existing {subject}
             </button>
-            <button
-              type="button"
-              onClick={() =>
-                document
-                  .getElementById("add-new")
-                  ?.scrollIntoView({ behavior: "smooth", block: "start" })
-              }
-              className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
-            >
-              <span className="text-xs">↗</span>
-              Add New {subject}
-            </button>
+            {addForm && (
+              <button
+                type="button"
+                onClick={() =>
+                  document
+                    .getElementById("add-new")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+                className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
+              >
+                <span className="text-xs">↗</span>
+                Add New {subject}
+              </button>
+            )}
             {links}
           </div>
 
@@ -124,12 +126,14 @@ export default function DashboardTemplate<T>({
           )}
         </section>
 
-        {addForm && (
-          <h1 id="add-new" className="text-3xl font-bold pt-10">
-            Add New {subject}
-          </h1>
-        )}
-        <section className="w-full">{addForm}</section>
+        {addForm ? (
+          <>
+            <h1 id="add-new" className="text-3xl font-bold pt-10">
+              Add New {subject}
+            </h1>
+            <section className="w-full">{addForm}</section>
+          </>
+        ) : null}
       </main>
 
       <div className="absolute top-4 right-4">
