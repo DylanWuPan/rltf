@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
 
     const { data, error } = await supabaseClient
       .from("events")
-      .select("id, type, place, points, details, created_at, meet:meets(name, id)")
+      .select("id, type, place, points, details, created_at, meet:meets(id, name, date, location, num_teams, season:seasons(id, name, start, end))")
       .eq("athlete", athlete)
       .order("created_at", { ascending: true });
 
@@ -24,9 +24,7 @@ Deno.serve(async (req) => {
         { status: 500, headers: { "Content-Type": "application/json" } },
       );
     }
-
-    console.log(data);
-
+    
     return new Response(
       JSON.stringify({ success: true, data }),
       { status: 200, headers: { "Content-Type": "application/json" } },

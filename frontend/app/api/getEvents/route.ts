@@ -8,7 +8,7 @@ export type Event = {
   points: number;
   details?: string;
   created_at?: string;
-  meet?: {id: string, name: string}
+  meet?: {id: string, name: string, date: Date, location: string, num_teams: number, season: {id: string, name: string, start: Date, end: Date}}
 };
 
 export async function GET(request: Request) {

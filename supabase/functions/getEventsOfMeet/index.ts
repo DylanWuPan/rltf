@@ -25,8 +25,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(data);
-
     return new Response(
       JSON.stringify({ success: true, data }),
       { status: 200, headers: { "Content-Type": "application/json" } },
