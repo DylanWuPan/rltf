@@ -209,80 +209,76 @@ export default function SeasonMeetsPage({ params }: PageProps) {
   );
 
   const rosterSection = (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main
-        id="roster-section"
-        className="flex min-h-screen w-full max-w-3xl flex-col items-start gap-8 px-16 bg-white dark:bg-black pt-10"
-      >
-        <h1 className="text-3xl font-bold">Team Roster</h1>
-
-        {/* List of athletes */}
-        {rosterLoading ? (
-          <p>Loading roster...</p>
-        ) : roster.length === 0 ? (
-          <p className="text-center">No athletes found.</p>
-        ) : (
-          <div className="w-full flex flex-col gap-4">
-            {roster.map((athlete) => (
-              <Link
-                key={athlete.id}
-                href={{
-                  pathname: `/athletes/${athlete.id}`,
-                  query: {
-                    name: athlete.name,
-                    season: id,
-                    seasonName
-                  },
-                }}
-                className="group relative flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow duration-200 cursor-pointer"
-              >
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-500">
-                    {athlete.name}
-                  </h3>
-                </div>
-                <div className="text-blue-500 group-hover:scale-110 transition-transform duration-200">
-                  &rarr;
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-
-        {/* Add athlete */}
-        <div className="w-full">
-          <div className="relative flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow">
-            <input
-              value={newAthleteName}
-              onChange={(e) => setNewAthleteName(e.target.value)}
-              placeholder="Add new athlete..."
-              className="w-full bg-transparent outline-none text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addAthlete();
-                }
+    <div id="roster-section" className="w-full flex flex-col gap-4">
+      {rosterLoading ? (
+        <p className="text-center text-gray-600 dark:text-gray-400">
+          Loading roster...
+        </p>
+      ) : roster.length === 0 ? (
+        <p className="text-center text-gray-600 dark:text-gray-400">
+          No athletes found.
+        </p>
+      ) : (
+        <div className="w-full max-w-3xl mx-auto flex flex-col gap-4">
+          {roster.map((athlete) => (
+            <Link
+              key={athlete.id}
+              href={{
+                pathname: `/athletes/${athlete.id}`,
+                query: {
+                  name: athlete.name,
+                },
               }}
-            />
-            <button
-              type="submit"
-              disabled={addingAthlete}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap shrink-0"
-              onClick={addAthlete}
+              className="group relative flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow duration-200 cursor-pointer"
             >
-              {addingAthlete && (
-                <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
-              )}
-              {addingAthlete ? "Adding..." : "Add Athlete"}
-            </button>
-          </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-500">
+                  {athlete.name}
+                </h3>
+              </div>
+              <div className="text-blue-500 group-hover:scale-110 transition-transform duration-200">
+                &rarr;
+              </div>
+            </Link>
+          ))}
         </div>
+      )}
 
-        {/* Error */}
-        {rosterError && (
-          <p className="text-red-600 mb-2 text-center w-full">{rosterError}</p>
-        )}
-      </main>
+      {/* Add athlete */}
+      <div className="w-full max-w-3xl mx-auto">
+        <div className="relative flex items-center gap-3 p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow duration-200">
+          <input
+            value={newAthleteName}
+            onChange={(e) => setNewAthleteName(e.target.value)}
+            placeholder="Add new athlete..."
+            className="w-full bg-transparent outline-none text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addAthlete();
+              }
+            }}
+          />
+          <button
+            type="submit"
+            disabled={addingAthlete}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap shrink-0"
+            onClick={addAthlete}
+          >
+            {addingAthlete && (
+              <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+            )}
+            {addingAthlete ? "Adding..." : "Add Athlete"}
+          </button>
+        </div>
+      </div>
+
+      {/* Error */}
+      {rosterError && (
+        <p className="text-red-600 text-center max-w-3xl mx-auto">
+          {rosterError}
+        </p>
+      )}
     </div>
   );
 
@@ -296,18 +292,20 @@ export default function SeasonMeetsPage({ params }: PageProps) {
   };
 
   const links = (
-    <button
-      type="button"
-      onClick={() =>
-        document
-          .getElementById("roster-section")
-          ?.scrollIntoView({ behavior: "smooth", block: "start" })
-      }
-      className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
-    >
-      <span className="text-xs">↗</span>
-      View Team Roster
-    </button>
+    <div className="flex flex-wrap gap-2">
+      <button
+        type="button"
+        onClick={() =>
+          document
+            .getElementById("roster-section")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
+        className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
+      >
+        <span className="text-xs">↗</span>
+        View Team Roster
+      </button>
+    </div>
   );
 
   return (
@@ -322,9 +320,8 @@ export default function SeasonMeetsPage({ params }: PageProps) {
         loading={loading}
         error={error}
         onDelete={onDelete}
+        rosterSection={rosterSection}
       />
-
-      {rosterSection}
     </>
   );
 }
