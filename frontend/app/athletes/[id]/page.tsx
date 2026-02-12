@@ -60,9 +60,15 @@ export default function AthletePage() {
         return parseFloat(d);
       });
       const minSeconds = Math.min(...timesInSeconds);
-      const minMins = Math.floor(minSeconds / 60);
-      const minSecs = Math.round(minSeconds % 60);
-      eventPRs[type] = `${minMins}:${minSecs.toString().padStart(2, "0")}`;
+
+      // Format as m:ss.xx
+      const minutes = Math.floor(minSeconds / 60);
+      const seconds = minSeconds % 60;
+
+      // Always show 2 decimal places and ensure leading zero
+      const formattedSeconds = seconds.toFixed(2).padStart(5, "0");
+
+      eventPRs[type] = `${minutes}:${formattedSeconds}`;
     } else {
       // Field events: highest distance
       const distances = eventDetails.map((d) => parseFloat(d));
@@ -97,20 +103,31 @@ export default function AthletePage() {
         )}
         loading={loading}
         error={error}
+      
         moreInfo={
-          <div className="flex flex-wrap gap-3 p-4">
-            <div className="px-4 py-2 bg-blue-100 dark:bg-blue-800 rounded-xl shadow text-blue-800 dark:text-blue-200 font-semibold">
-              Total Points: {totalPoints}
-            </div>
-            {uniqueEventTypes.map((type) => (
-              <div
-                key={`event-badge-${type}`}
-                className="px-4 py-2 bg-blue-100 dark:bg-blue-800 rounded-xl shadow text-blue-800 dark:text-blue-200"
-              >
-                {type} PR: {eventPRs[type]}
-              </div>
-            ))}
+          <div className="flex flex-col gap-3 p-1">
+          {/* Total Points on its own row */}
+         <div className="px-4 py-4 bg-blue-100 dark:bg-blue-800 rounded-xl shadow text-blue-800 dark:text-blue-200 w-full flex flex-col justify-between">
+          <div className="text-3xl font-bold">
+            {totalPoints}
           </div>
+          <div className="font-semibold">
+            Total Points
+         </div>
+        </div>
+
+          {/* PR badges on the row below */}
+          <div className="flex flex-wrap gap-3">
+          {uniqueEventTypes.map((type) => (
+           <div
+            key={`event-badge-${type}`}
+            className="px-4 py-2 bg-blue-100 dark:bg-blue-800 rounded-xl shadow text-blue-800 dark:text-blue-200"
+           >
+           {type} PR: {eventPRs[type]}
+            </div>
+           ))}
+          </div>
+        </div>
         }
         onDelete={async () => {
           const confirmed = window.confirm(
