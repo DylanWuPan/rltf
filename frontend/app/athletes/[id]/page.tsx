@@ -6,13 +6,12 @@ import type { Event } from "../../api/getEvents/route";
 
 export default function AthletePage() {
   const params = useParams();
-const searchParams = useSearchParams();
+  const searchParams = useSearchParams();
 
-const athleteId = params?.id ?? "";
-const athleteName = searchParams.get("name") ?? "Athlete";
-const seasonId = searchParams.get("season") ?? "";
-const seasonName = searchParams.get("seasonName") ?? "";
-
+  const athleteId = params?.id ?? "";
+  const athleteName = searchParams.get("name") ?? "Athlete";
+  const seasonId = searchParams.get("season") ?? "";
+  const seasonName = searchParams.get("seasonName") ?? "";
 
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
@@ -23,7 +22,9 @@ const seasonName = searchParams.get("seasonName") ?? "";
     const fetchEvents = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/getEvents?id=${athleteId}&target=athlete`);
+        const response = await fetch(
+          `/api/getEvents?id=${athleteId}&target=athlete`
+        );
         if (!response.ok) throw new Error("Failed to fetch events");
         const data: Event[] = await response.json();
         setEvents(data);
@@ -38,7 +39,7 @@ const seasonName = searchParams.get("seasonName") ?? "";
   }, [athleteId]);
 
   const totalPoints = events.reduce((sum, ev) => sum + (ev.points || 0), 0);
-  const uniqueEventTypes = Array.from(new Set(events.map(e => e.type)));
+  const uniqueEventTypes = Array.from(new Set(events.map((e) => e.type)));
 
   const eventPRs: Record<string, string> = {};
   uniqueEventTypes.forEach((type) => {
@@ -94,7 +95,6 @@ const seasonName = searchParams.get("seasonName") ?? "";
             </span>
           </div>
         )}
-        
         loading={loading}
         error={error}
         moreInfo={
@@ -113,15 +113,21 @@ const seasonName = searchParams.get("seasonName") ?? "";
           </div>
         }
         onDelete={async () => {
-          const confirmed = window.confirm(`Are you sure you want to delete ${athleteName}?`);
+          const confirmed = window.confirm(
+            `Are you sure you want to delete ${athleteName}?`
+          );
           if (!confirmed) return;
 
           try {
-            const response = await fetch(`/api/deleteEntity?id=${athleteId}&table=athletes`, {
-              method: "DELETE",
-            });
+            const response = await fetch(
+              `/api/deleteEntity?id=${athleteId}&table=athletes`,
+              {
+                method: "DELETE",
+              }
+            );
             if (!response.ok) throw new Error("Failed to delete athlete");
-            window.location.href = "/seasons/" + seasonId + `?name=${seasonName}`;
+            window.location.href =
+              "/seasons/" + seasonId + `?name=${seasonName}`;
           } catch (error) {
             console.error("Delete failed:", error);
             alert("Failed to delete athlete");

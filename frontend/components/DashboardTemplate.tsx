@@ -9,7 +9,7 @@ interface DashboardTemplateProps<T> {
   subject: string;
   items: T[];
   renderItem: (item: T) => ReactNode; // how to render each row
-  addForm: ReactNode; // the form JSX to add a new item
+  addForm?: ReactNode; // the form JSX to add a new item
   links?: ReactNode;
   loading?: boolean;
   error?: string | null;
