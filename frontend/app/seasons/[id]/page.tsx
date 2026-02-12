@@ -227,6 +227,8 @@ export default function SeasonMeetsPage({ params }: PageProps) {
                 pathname: `/athletes/${athlete.id}`,
                 query: {
                   name: athlete.name,
+                  season: id,
+                  seasonName
                 },
               }}
               className="group relative flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow duration-200 cursor-pointer"
