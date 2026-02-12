@@ -290,18 +290,20 @@ export default function SeasonMeetsPage({ params }: PageProps) {
   };
 
   const links = (
-    <button
-      type="button"
-      onClick={() =>
-        document
-          .getElementById("roster-section")
-          ?.scrollIntoView({ behavior: "smooth", block: "start" })
-      }
-      className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
-    >
-      <span className="text-xs">↗</span>
-      View Team Roster
-    </button>
+    <div className="flex flex-wrap gap-2">
+      <button
+        type="button"
+        onClick={() =>
+          document
+            .getElementById("roster-section")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
+        className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
+      >
+        <span className="text-xs">↗</span>
+        View Team Roster
+      </button>
+    </div>
   );
 
   return (
