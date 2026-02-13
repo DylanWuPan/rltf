@@ -181,7 +181,7 @@ export default function SeasonsPage() {
       loading={loading}
       error={error}
       hideBackButton={true}
-      links={links}
+      // links={links}
     />
   );
 }
