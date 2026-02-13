@@ -3,6 +3,7 @@ import { ReactNode, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogoutButton } from "./logout-button";
 import { Button } from "./ui/button";
+import { on } from "events";
 
 interface DashboardTemplateProps<T> {
   title: string;
@@ -14,6 +15,7 @@ interface DashboardTemplateProps<T> {
   loading?: boolean;
   error?: string | null;
   onDelete?: () => void;
+  onBack?: () => void;
   hideBackButton?: boolean;
   moreInfo?: ReactNode;
   rosterSection?: ReactNode;
@@ -31,6 +33,7 @@ export default function DashboardTemplate<T>({
   loading,
   error,
   onDelete,
+  onBack,
   hideBackButton,
   moreInfo,
   rosterSection,
@@ -45,7 +48,7 @@ export default function DashboardTemplate<T>({
       <main className="relative flex min-h-screen w-full max-w-3xl flex-col items-start gap-8 py-32 px-16 bg-white dark:bg-black">
         {!hideBackButton && (
           <button
-            onClick={() => router.back()}
+            onClick={onBack ? onBack : () => router.back()}
             className="absolute top-8 left-8 text-sm text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
           >
             ← Back
