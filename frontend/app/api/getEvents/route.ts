@@ -8,7 +8,7 @@ export type Event = {
   points: number;
   details?: string;
   created_at?: string;
-  meet?: {id: string, name: string, date: Date, location: string, num_teams: number, season: {id: string, name: string, start: Date, end: Date}}
+  meet?: {id: string, name: string, date: string, location: string, num_teams: number, season: {id: string, name: string, start: string, end: string}}
 };
 
 export async function GET(request: Request) {
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
 
   if (!id || !target) {
     return NextResponse.json(
-      { error: "Missing meet query parameter" },
+      { error: "Missing id or target query parameter" },
       { status: 400 }
     );
   }
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
       if (!res.ok) {
         const text = await res.text();
         return NextResponse.json(
-          { error: "Failed to fetch meets", details: text },
+          { error: "Failed to fetch events for meet", details: text },
           { status: 500 }
         );
       }
@@ -62,7 +62,7 @@ export async function GET(request: Request) {
     if (!res.ok) {
       const text = await res.text();
       return NextResponse.json(
-        { error: "Failed to fetch meets", details: text },
+        { error: "Failed to fetch events for athlete", details: text },
         { status: 500 }
       );
     }
@@ -75,6 +75,4 @@ export async function GET(request: Request) {
       { status: 400 }
     );
   }
-
-  
 }

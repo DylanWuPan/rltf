@@ -228,7 +228,7 @@ export default function SeasonMeetsPage({ params }: PageProps) {
                 query: {
                   name: athlete.name,
                   season: id,
-                  seasonName
+                  seasonName,
                 },
               }}
               className="group relative flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow duration-200 cursor-pointer"
@@ -295,6 +295,10 @@ export default function SeasonMeetsPage({ params }: PageProps) {
     window.location.href = "/";
   };
 
+  const onBack = async () => {
+    window.location.href = "/";
+  };
+
   const links = (
     <div className="flex flex-wrap gap-2">
       <button
@@ -324,6 +328,7 @@ export default function SeasonMeetsPage({ params }: PageProps) {
         loading={loading}
         error={error}
         onDelete={onDelete}
+        onBack={onBack}
         rosterSection={rosterSection}
       />
     </>

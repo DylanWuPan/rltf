@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { data: events, error } = await supabaseClient
+    const { data, error } = await supabaseClient
       .from("events")
       .select("id, type, athlete:athletes(id, name), place, points, details")
       .eq("meet", meet)
@@ -43,8 +43,8 @@ Deno.serve(async (req) => {
   1. Run `supabase start`
   2. Make an HTTP request:
 
-  curl -X POST "https://yswwvmzncodhxafkzswz.supabase.co/functions/v1/getMeetsOfSeason" \
+  curl -X POST "https://yswwvmzncodhxafkzswz.supabase.co/functions/v1/getEventsOfMeet" \
   -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlzd3d2bXpuY29kaHhhZmt6c3d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzODMwNDcsImV4cCI6MjA4MDk1OTA0N30.PbXFC1FLzN8oEiUCIuL7u662SteIEcsxuGff9icHZ9A' \
   -H "Content-Type: application/json" \
-  -d '{"season": "58269bd3-9896-4790-a528-52ac2ba7eae3"}'    
+  -d '{"meet": "58269bd3-9896-4790-a528-52ac2ba7eae3"}'    
 */

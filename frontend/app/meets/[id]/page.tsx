@@ -98,7 +98,7 @@ export default function MeetEventsPage({ params }: PageProps) {
               className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400"
             >
               <span>
-                {event.athlete} |{" "}
+                {event.athlete?.name} |{" "}
                 {(() => {
                   const place = event.place;
                   const suffix =
@@ -117,7 +117,6 @@ export default function MeetEventsPage({ params }: PageProps) {
                 Place | {event.points} points{" "}
                 {event.details && `| ${event.details}`}
               </span>
-
             </div>
           ))}
       </div>
@@ -243,29 +242,30 @@ export default function MeetEventsPage({ params }: PageProps) {
                   min={-1}
                   step={1}
                   required
-                  value={
-                    isRelay
-                      ? relayPlaces[Math.floor(idx / 4) * 4] ?? ""
-                      : undefined
-                  }
-                  onChange={(e) => {
-                    if (isRelay) {
-                      const teamStart = Math.floor(idx / 4) * 4;
-                      const value = e.target.value;
+                  key={isRelay ? `relay-${Math.floor(idx / 4)}` : `ind-${idx}`}
+                  {...(isRelay
+                    ? {
+                        value: relayPlaces[Math.floor(idx / 4) * 4] ?? "",
+                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                          const teamStart = Math.floor(idx / 4) * 4;
+                          const value = e.target.value;
 
-                      setRelayPlaces((prev) => {
-                        const next = { ...prev };
+                          setRelayPlaces((prev) => {
+                            const next = { ...prev };
 
-                        if (value === "") {
-                          delete next[teamStart];
-                        } else {
-                          next[teamStart] = Number(value);
-                        }
+                            if (value === "") {
+                              delete next[teamStart];
+                            } else {
+                              next[teamStart] = Number(value);
+                            }
 
-                        return next;
-                      });
-                    }
-                  }}
+                            return next;
+                          });
+                        },
+                      }
+                    : {
+                        defaultValue: "",
+                      })}
                   className="mt-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </label>
@@ -364,11 +364,17 @@ export default function MeetEventsPage({ params }: PageProps) {
   );
 
   const onDelete = async () => {
-    const confirmed = window.confirm(`Are you sure you want to delete ${meetName}?`);
-          if (!confirmed) return;
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${meetName}?`
+    );
+    if (!confirmed) return;
     await fetch(`/api/deleteEntity?id=${id}&table=meets`, {
       method: "DELETE",
     });
+    window.location.href = "/seasons/" + seasonId + `?name=${seasonName}`;
+  };
+
+  const onBack = function () {
     window.location.href = "/seasons/" + seasonId + `?name=${seasonName}`;
   };
 
@@ -382,6 +388,7 @@ export default function MeetEventsPage({ params }: PageProps) {
       loading={loading}
       error={error}
       onDelete={onDelete}
+      onBack={onBack}
     />
   );
 }
