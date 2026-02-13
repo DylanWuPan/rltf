@@ -39,6 +39,19 @@ export default function AthletePage() {
   }, [athleteId]);
 
   const totalPoints = events.reduce((sum, ev) => sum + (ev.points || 0), 0);
+  const totalEvents = events.length;
+  const totalMeets = new Set(
+    events
+      .filter((e) => e.meet?.id)
+      .map((e) => e.meet!.id)
+  ).size;
+
+  const avgPointsPerEvent =
+    totalEvents > 0 ? (totalPoints / totalEvents).toFixed(2) : "0.00";
+
+  const avgPointsPerMeet =
+    totalMeets > 0 ? (totalPoints / totalMeets).toFixed(2) : "0.00";
+
   const uniqueEventTypes = Array.from(new Set(events.map((e) => e.type)));
 
   const eventPRs: Record<string, string> = {};
@@ -106,22 +119,38 @@ export default function AthletePage() {
       
         moreInfo={
           <div className="flex flex-col gap-3 p-1">
-          {/* Total Points on its own row */}
-         <div className="px-4 py-4 bg-blue-100 dark:bg-blue-800 rounded-xl shadow text-blue-800 dark:text-blue-200 w-full flex flex-col justify-between">
-          <div className="text-3xl font-bold">
-            {totalPoints}
+          {/* Combined Total Stats box */}
+          <div className="px-6 py-6 bg-blue-100 dark:bg-blue-800 rounded-xl shadow text-blue-800 dark:text-blue-200 w-full">
+            <div className="flex justify-center gap-4 w-full">
+              <div className="flex flex-col items-center gap-1">
+                <div className="text-5xl font-bold">{totalPoints}</div>
+                <div className="font-semibold text-sm">Total Points</div>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <div className="text-5xl font-bold">{totalEvents}</div>
+                <div className="font-semibold text-sm">Total Events</div>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <div className="text-5xl font-bold">{totalMeets}</div>
+                <div className="font-semibold text-sm">Total Meets</div>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <div className="text-5xl font-bold">{avgPointsPerEvent}</div>
+                <div className="font-semibold text-sm">Avg Points (Event)</div>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <div className="text-5xl font-bold">{avgPointsPerMeet}</div>
+                <div className="font-semibold text-sm">Avg Points (Meet)</div>
+              </div>
+            </div>
           </div>
-          <div className="font-semibold">
-            Total Points
-         </div>
-        </div>
 
           {/* PR badges on the row below */}
           <div className="flex flex-wrap gap-3">
           {uniqueEventTypes.map((type) => (
            <div
             key={`event-badge-${type}`}
-            className="px-4 py-2 bg-blue-100 dark:bg-blue-800 rounded-xl shadow text-blue-800 dark:text-blue-200"
+            className="px-4 py-2 bg-blue-100 dark:bg-blue-800 rounded-xl shadow text-blue-800 dark:text-blue-200 text-sm"
            >
            {type} PR: {eventPRs[type]}
             </div>
