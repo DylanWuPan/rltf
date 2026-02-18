@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 
 export type Event = {
   id: string;
-  athlete?: {id: string, name: string};
+  athlete: {id: string, name: string};
   type: string;
   place: number;
   points: number;
-  details?: string;
-  created_at?: string;
-  meet?: {id: string, name: string, date: string, location: string, num_teams: number, season: {id: string, name: string, start: string, end: string}}
+  details: string;
+  created_at: string;
+  meet: {id: string, name: string, date: string, location: string, num_teams: number, season: {id: string, name: string, start: string, end: string}}
 };
 
 export async function GET(request: Request) {
@@ -22,57 +22,26 @@ export async function GET(request: Request) {
       { status: 400 }
     );
   }
-
-  if (target === "meet") {
-    const res = await fetch(
-        `${process.env.SUPABASE_URL}/functions/v1/getEventsOfMeet`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-          },
-          body: JSON.stringify({ meet: id }),
-        }
-      );
-
-      if (!res.ok) {
-        const text = await res.text();
-        return NextResponse.json(
-          { error: "Failed to fetch events for meet", details: text },
-          { status: 500 }
-        );
-      }
-
-      const json = await res.json();
-      return NextResponse.json(json.data);
-  } else if (target === "athlete") {
-    const res = await fetch(
-      `${process.env.SUPABASE_URL}/functions/v1/getEventsOfAthlete`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-        },
-        body: JSON.stringify({ athlete: id }),
-      }
-    );
-
-    if (!res.ok) {
-      const text = await res.text();
-      return NextResponse.json(
-        { error: "Failed to fetch events for athlete", details: text },
-        { status: 500 }
-      );
+  const res = await fetch(
+    `${process.env.SUPABASE_URL}/functions/v1/getEventsOfEntity`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({ id, target}),
     }
+  );
 
-    const json = await res.json();
-    return NextResponse.json(json.data);
-  } else {
+  if (!res.ok) {
+    const text = await res.text();
     return NextResponse.json(
-      { error: "Invalid target parameter" },
-      { status: 400 }
+      { error: "Failed to fetch events for athlete", details: text },
+      { status: 500 }
     );
   }
+
+  const json = await res.json();
+  return NextResponse.json(json.data);
 }

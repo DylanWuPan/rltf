@@ -374,9 +374,9 @@ export default function MeetEventsPage({ params }: PageProps) {
     window.location.href = "/seasons/" + seasonId + `?name=${seasonName}`;
   };
 
-  const onBack = function () {
-    window.location.href = "/seasons/" + seasonId + `?name=${seasonName}`;
-  };
+  // const onBack = function () {
+  //   window.location.href = "/seasons/" + seasonId + `?name=${seasonName}`;
+  // };
 
   return (
     <DashboardTemplate
@@ -388,7 +388,7 @@ export default function MeetEventsPage({ params }: PageProps) {
       loading={loading}
       error={error}
       onDelete={onDelete}
-      onBack={onBack}
+      // onBack={onBack}
     />
   );
 }

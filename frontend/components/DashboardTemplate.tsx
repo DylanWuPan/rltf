@@ -6,10 +6,11 @@ import { Button } from "./ui/button";
 import { on } from "events";
 
 interface DashboardTemplateProps<T> {
-  title: string;
-  subject: string;
-  items: T[];
-  renderItem: (item: T) => ReactNode; // how to render each row
+  title?: string;
+  subject?: string;
+  subjectInfo?: ReactNode;
+  items?: T[];
+  renderItem?: (item: T) => ReactNode; // how to render each row
   addForm?: ReactNode; // the form JSX to add a new item
   links?: ReactNode;
   loading?: boolean;
@@ -26,6 +27,7 @@ interface DashboardTemplateProps<T> {
 export default function DashboardTemplate<T>({
   title,
   subject,
+  subjectInfo,
   items,
   renderItem,
   addForm,
@@ -56,7 +58,9 @@ export default function DashboardTemplate<T>({
         )}
 
         <div className="w-full flex flex-col gap-4">
-          <h1 className="text-4xl font-bold">{title}</h1>
+          {title && <h1 className="text-4xl font-bold">{title}</h1>}
+
+          {subjectInfo}
 
           {/* Bubble navigation */}
           <div className="flex flex-wrap gap-2">
@@ -68,7 +72,7 @@ export default function DashboardTemplate<T>({
                     .getElementById("existing")
                     ?.scrollIntoView({ behavior: "smooth", block: "start" })
                 }
-                className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
+                className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1 cursor-pointer"
               >
                 <span className="text-xs">↗</span>
                 View Existing {subject}
@@ -82,7 +86,7 @@ export default function DashboardTemplate<T>({
                     .getElementById("add-new")
                     ?.scrollIntoView({ behavior: "smooth", block: "start" })
                 }
-                className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
+                className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1 cursor-pointer"
               >
                 <span className="text-xs">↗</span>
                 Add New {subject}
@@ -97,23 +101,27 @@ export default function DashboardTemplate<T>({
 
         {moreInfo}
 
-        <h1 id="existing" className="text-3xl font-bold pt-10">
-          View Existing {subject}
-        </h1>
+        {renderItem && (
+          <h1 id="existing" className="text-3xl font-bold pt-10">
+            View Existing {subject}
+          </h1>
+        )}
 
         {/* Error */}
         {error && <p className="text-red-600 mb-2">{error}</p>}
 
         {/* List of items */}
-        <section className="w-full">
-          {loading ? (
-            <p>Loading...</p>
-          ) : items.length === 0 ? (
-            <p className="text-center">No {subject.toLowerCase()} found.</p>
-          ) : (
-            items.map(renderItem)
-          )}
-        </section>
+        {items && renderItem && subject && (
+          <section className="w-full">
+            {loading ? (
+              <p>Loading...</p>
+            ) : items.length === 0 ? (
+              <p className="text-center">No {subject.toLowerCase()} found.</p>
+            ) : (
+              items.map(renderItem)
+            )}
+          </section>
+        )}
 
         {addForm && (
           <h1 id="add-new" className="text-3xl font-bold pt-10">
@@ -124,7 +132,7 @@ export default function DashboardTemplate<T>({
 
         {rosterSection && (
           <h1 id="roster-section" className="text-3xl font-bold pt-10">
-            Team Roster
+            Season Roster
           </h1>
         )}
         <section className="w-full">{rosterSection}</section>

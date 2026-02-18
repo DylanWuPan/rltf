@@ -5,6 +5,7 @@ import type { Athlete } from "../../api/getAthletes/route";
 import Link from "next/link";
 import DashboardTemplate from "@/components/DashboardTemplate";
 import { useSearchParams } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -14,6 +15,17 @@ export default function SeasonMeetsPage({ params }: PageProps) {
   const { id } = React.use(params);
   const searchParams = useSearchParams();
   const seasonName = searchParams.get("name");
+
+  const [user, setUser] = useState<string | null>(null);
+  const supabase = createClient();
+  const fetchUser = useCallback(async () => {
+    const { data } = await supabase.auth.getUser();
+    if (data.user) {
+      setUser(data.user.id);
+    } else {
+      setUser(null);
+    }
+  }, [supabase]);
 
   const [meets, setMeets] = useState<Meet[]>([]);
   const [loading, setLoading] = useState(false);
@@ -91,9 +103,9 @@ export default function SeasonMeetsPage({ params }: PageProps) {
   }, [newAthleteName, id, roster, fetchRoster]);
 
   useEffect(() => {
-    fetchMeets();
+    fetchUser(), fetchMeets();
     fetchRoster();
-  }, [fetchMeets, fetchRoster]);
+  }, [fetchUser, fetchMeets, fetchRoster]);
 
   const renderItem = (meet: Meet) => (
     <Link
@@ -299,22 +311,32 @@ export default function SeasonMeetsPage({ params }: PageProps) {
     window.location.href = "/";
   };
 
-  const links = (
-    <div className="flex flex-wrap gap-2">
-      <button
-        type="button"
-        onClick={() =>
-          document
-            .getElementById("roster-section")
-            ?.scrollIntoView({ behavior: "smooth", block: "start" })
-        }
-        className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
-      >
-        <span className="text-xs">↗</span>
-        View Team Roster
-      </button>
-    </div>
-  );
+  const links = [
+    <button
+      key="roster-link"
+      type="button"
+      onClick={() =>
+        document
+          .getElementById("roster-section")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" })
+      }
+      className=" cursor-pointer px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
+    >
+      <span className="text-xs">↗</span>
+      View Season Roster
+    </button>,
+    <button
+      key="leaderboard-link"
+      type="button"
+      onClick={() =>
+        (window.location.href = `/leaderboard/${user}?filter=${seasonName}`)
+      }
+      className="cursor-pointer px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
+    >
+      <span className="text-xs">↗</span>
+      View Season Leaderboard
+    </button>,
+  ];
 
   return (
     <>

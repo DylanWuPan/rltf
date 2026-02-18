@@ -159,10 +159,7 @@ export default function SeasonsPage() {
     <div className="flex flex-wrap gap-2">
       <button
         type="button"
-        onClick={() =>
-          (window.location.href = `/leaderboard/${user?.id}
-          )}`)
-        }
+        onClick={() => (window.location.href = `/leaderboard/${user?.id}`)}
         className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
       >
         <span className="text-xs">↗</span>
@@ -181,7 +178,7 @@ export default function SeasonsPage() {
       loading={loading}
       error={error}
       hideBackButton={true}
-      // links={links}
+      links={links}
     />
   );
 }
