@@ -16,9 +16,9 @@ export const metadata: Metadata = {
   title: "RLTF",
   description: "Roxbury Latin Track and Field",
   icons: {
-    icon: "/fox.jpg", // standard favicon
-    apple: "/fox.jpg", // Apple touch icon
-    shortcut: "/fox.png", // Windows/shortcut
+    icon: "/fox.svg", // standard favicon
+    apple: "/fox.svg", // Apple touch icon
+    shortcut: "/fox.svg", // Windows/shortcut
   },
 };
 
