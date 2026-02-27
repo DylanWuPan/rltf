@@ -4,6 +4,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import DashboardTemplate from "@/components/DashboardTemplate";
 import type { Event } from "../../api/getEvents/route";
+import { createClient } from "@/lib/supabase/client";
 
 type AthleteStats = {
   athleteId: string;
@@ -16,6 +17,16 @@ type AthleteStats = {
 };
 
 export default function LeaderboardPage() {
+  const [isPublic, setIsPublic] = useState(false);
+  async function checkCredentials() {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase.auth.getClaims();
+    if (error || !data?.claims) {
+      setIsPublic(true);
+    }
+  }
+
   const params = useParams();
   const searchParams = useSearchParams();
   const userId = params?.id ?? "";
@@ -35,6 +46,7 @@ export default function LeaderboardPage() {
   const [highlightId, setHighlightId] = useState<string | null>(athleteRequest);
 
   useEffect(() => {
+    checkCredentials();
     if (!userId) return;
     const fetchEvents = async () => {
       setLoading(true);
@@ -288,6 +300,7 @@ export default function LeaderboardPage() {
       addLink={false}
       viewLink={false}
       moreInfo={leaderboardSection}
+      isPublic={isPublic}
     />
   );
 }

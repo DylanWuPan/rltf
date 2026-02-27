@@ -5,12 +5,23 @@ import DashboardTemplate from "@/components/DashboardTemplate";
 import { useSearchParams } from "next/navigation";
 import type { EventType } from "@/app/api/getEventTypes/route";
 import type { Athlete } from "@/app/api/getAthletes/route";
+import { createClient } from "@/lib/supabase/client";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
 export default function MeetEventsPage({ params }: PageProps) {
+  const [isPublic, setIsPublic] = useState(false);
+  async function checkCredentials() {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase.auth.getClaims();
+    if (error || !data?.claims) {
+      setIsPublic(true);
+    }
+  }
+
   const { id } = React.use(params);
   const searchParams = useSearchParams();
   const meetName = searchParams.get("name");
@@ -69,6 +80,7 @@ export default function MeetEventsPage({ params }: PageProps) {
   }, [seasonId]);
 
   useEffect(() => {
+    checkCredentials();
     fetchEvents();
     fetchAthletes();
     fetchEventTypes();
@@ -388,7 +400,7 @@ export default function MeetEventsPage({ params }: PageProps) {
       loading={loading}
       error={error}
       onDelete={onDelete}
-      // onBack={onBack}
+      isPublic={isPublic}
     />
   );
 }

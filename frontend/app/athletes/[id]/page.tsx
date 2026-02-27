@@ -8,6 +8,16 @@ import { createClient } from "@/lib/supabase/client";
 import { useCallback } from "react";
 
 export default function AthletePage() {
+  const [isPublic, setIsPublic] = useState(false);
+  async function checkCredentials() {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase.auth.getClaims();
+    if (error || !data?.claims) {
+      setIsPublic(true);
+    }
+  }
+
   const params = useParams();
   const searchParams = useSearchParams();
 
@@ -32,6 +42,7 @@ export default function AthletePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    checkCredentials();
     if (!athleteId) return;
     const fetchEvents = async () => {
       setLoading(true);
@@ -286,6 +297,7 @@ export default function AthletePage() {
         addLink={false}
         viewLink={false}
         links={links}
+        isPublic={isPublic}
       />
     </div>
   );
