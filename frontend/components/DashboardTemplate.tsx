@@ -3,7 +3,6 @@ import { ReactNode, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogoutButton } from "./logout-button";
 import { Button } from "./ui/button";
-import { on } from "events";
 import { LoginButton } from "./login-button";
 
 interface DashboardTemplateProps<T> {

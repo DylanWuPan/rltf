@@ -16,6 +16,16 @@ export async function GET(request: Request) {
   const id = searchParams.get("id");
   const target = searchParams.get("target");
 
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return NextResponse.json(
+      { error: "Server misconfiguration: Missing Supabase environment variables" },
+      { status: 500 }
+    );
+  }
+
   if (!id || !target) {
     return NextResponse.json(
       { error: "Missing id or target query parameter" },
@@ -23,12 +33,12 @@ export async function GET(request: Request) {
     );
   }
   const res = await fetch(
-    `${process.env.SUPABASE_URL}/functions/v1/getEventsOfEntity`,
+    `${supabaseUrl}/functions/v1/getEventsOfEntity`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        Authorization: `Bearer ${serviceRoleKey}`,
       },
       body: JSON.stringify({ id, target}),
     }
@@ -42,6 +52,23 @@ export async function GET(request: Request) {
     );
   }
 
-  const json = await res.json();
+  let json;
+  try {
+    json = await res.json();
+  } catch (err) {
+    const text = await res.text();
+    return NextResponse.json(
+      { error: "Supabase returned invalid JSON", details: text },
+      { status: 500 }
+    );
+  }
+
+  if (!json || !json.data) {
+    return NextResponse.json(
+      { error: "Unexpected response format from Supabase", details: json },
+      { status: 500 }
+    );
+  }
+
   return NextResponse.json(json.data);
 }

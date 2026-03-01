@@ -29,7 +29,8 @@ export default function LeaderboardPage() {
 
   const params = useParams();
   const searchParams = useSearchParams();
-  const userId = params?.id ?? "";
+  const rawId = params?.id;
+  const userId = Array.isArray(rawId) ? rawId[0] : rawId ?? "";
   const filterRequest = searchParams.get("filter") ?? null;
   const athleteRequest = searchParams.get("athlete") ?? null;
 
@@ -52,9 +53,21 @@ export default function LeaderboardPage() {
       setLoading(true);
       try {
         const response = await fetch(`/api/getEvents?id=${userId}&target=user`);
-        if (!response.ok) throw new Error("Failed to fetch events");
-        const data: Event[] = await response.json();
-        setEvents(data);
+
+        const text = await response.text();
+        if (!response.ok) {
+          console.error("Fetch failed. Status:", response.status);
+          console.error("Response body:", text);
+          throw new Error("Failed to fetch events");
+        }
+
+        try {
+          const data: Event[] = JSON.parse(text);
+          setEvents(data);
+        } catch (parseError) {
+          console.error("Invalid JSON received:", text);
+          throw new Error("Server did not return valid JSON");
+        }
       } catch (e) {
         setError((e as Error).message);
       } finally {
