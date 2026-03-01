@@ -54,7 +54,7 @@ export default function DashboardTemplate<T>({
         {!hideBackButton && !isPublic && (
           <button
             onClick={onBack ? onBack : () => router.back()}
-            className="absolute top-8 left-8 text-sm text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
+            className="absolute top-8 left-8 text-sm text-zinc-500 hover:text-black dark:hover:text-white transition-colors cursor-pointer"
           >
             ← Back
           </button>
@@ -129,7 +129,7 @@ export default function DashboardTemplate<T>({
         )}
 
         {!isPublic && addForm && (
-          <div>
+          <div className="w-full flex flex-col gap-4">
             <h1 id="add-new" className="text-3xl font-bold pt-10">
               Add New {subject}
             </h1>
@@ -156,7 +156,7 @@ export default function DashboardTemplate<T>({
                   setDeleting(false);
                 }
               }}
-              className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2 disabled:opacity-60"
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2 disabled:opacity-60 cursor-pointer"
             >
               {deleting && (
                 <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />

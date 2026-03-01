@@ -13,5 +13,9 @@ export function LoginButton() {
     router.push("/auth/login");
   };
 
-  return <Button onClick={login}>Login</Button>;
+  return (
+    <Button className="cursor-pointer" onClick={login}>
+      Login
+    </Button>
+  );
 }

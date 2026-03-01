@@ -365,7 +365,7 @@ export default function MeetEventsPage({ params }: PageProps) {
       <button
         type="submit"
         disabled={addingEvent}
-        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-2"
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
       >
         {addingEvent && (
           <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
