@@ -14,6 +14,13 @@ export async function POST(req: Request) {
       );
     }
 
+    if (name === "") {
+      return NextResponse.json(
+        { error: "Please enter the athlete's name." },
+        { status: 400 }
+      );
+    }
+
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       return NextResponse.json(
         { error: "Server misconfiguration: missing Supabase environment variables" },

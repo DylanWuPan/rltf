@@ -68,29 +68,34 @@ export default function SeasonMeetsPage({ params }: PageProps) {
 
   const addAthlete = useCallback(async () => {
     setAddingAthlete(true);
-    const name = newAthleteName.trim();
-    if (!name) return;
+    const names = (newAthleteName || "")
+      .split(/\r?\n/)
+      .map((n) => n.trim())
+      .filter((n) => n.length > 0);
 
-    const alreadyExists = roster.some(
-      (athlete) => athlete.name.toLowerCase() === name.toLowerCase()
-    );
-
-    if (alreadyExists) {
-      setRosterError(`${name} is already on the roster.`);
+    if (names.length === 0) {
       setAddingAthlete(false);
       return;
     }
 
     try {
-      const res = await fetch("/api/addAthlete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, season: id }),
-      });
+      for (const name of names) {
+        const alreadyExists = roster.some(
+          (athlete) => athlete.name.toLowerCase() === name.toLowerCase()
+        );
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to add athlete");
+        if (alreadyExists) continue;
+
+        const res = await fetch("/api/addAthlete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, season: id }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to add athlete");
+        }
       }
 
       setNewAthleteName("");
@@ -99,11 +104,13 @@ export default function SeasonMeetsPage({ params }: PageProps) {
     } catch (e) {
       setRosterError((e as Error).message);
     }
+
     setAddingAthlete(false);
   }, [newAthleteName, id, roster, fetchRoster]);
 
   useEffect(() => {
-    fetchUser(), fetchMeets();
+    fetchUser();
+    fetchMeets();
     fetchRoster();
   }, [fetchUser, fetchMeets, fetchRoster]);
 
@@ -261,17 +268,12 @@ export default function SeasonMeetsPage({ params }: PageProps) {
       {/* Add athlete */}
       <div className="w-full max-w-3xl mx-auto">
         <div className="relative flex items-center gap-3 p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow duration-200">
-          <input
+          <textarea
             value={newAthleteName}
             onChange={(e) => setNewAthleteName(e.target.value)}
-            placeholder="Add new athlete..."
-            className="w-full bg-transparent outline-none text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addAthlete();
-              }
-            }}
+            placeholder="Paste athlete names (one per line)..."
+            rows={3}
+            className="w-full bg-transparent outline-none text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 resize-none"
           />
           <button
             type="submit"
@@ -282,7 +284,7 @@ export default function SeasonMeetsPage({ params }: PageProps) {
             {addingAthlete && (
               <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
             )}
-            {addingAthlete ? "Adding..." : "Add Athlete"}
+            {addingAthlete ? "Adding..." : "Add Athletes"}
           </button>
         </div>
       </div>
