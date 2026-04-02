@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
       .from("athletes")
       .upsert(
         athletesToInsert,
-        { onConflict: "name,season" }
+        { onConflict: "name,season", ignoreDuplicates: true }
       )
       .select();
 

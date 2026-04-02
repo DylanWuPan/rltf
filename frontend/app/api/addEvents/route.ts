@@ -4,7 +4,14 @@ import { calculateScores } from "./scoring";
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-import type { EventSchema } from "../../../../supabase/functions/_shared/schemas";
+type Event = {
+  athlete: string;
+  type: string;
+  place: number;
+  points: number;
+  details: string;
+  meet: string;
+};
 
 type RequestBody = {
   type: string;
@@ -46,7 +53,7 @@ export async function POST(req: Request) {
 
     const points: number[] = calculateScores(type, numTeams, places);
 
-    const newEvents: typeof EventSchema[] = athletes.map((athlete, i) => ({
+    const newEvents: Event[] = athletes.map((athlete, i) => ({
       athlete,
       type,
       place: places[i],

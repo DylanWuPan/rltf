@@ -70,13 +70,13 @@ export async function POST(request: Request) {
       }
     }
     if (newAthletes.length > 0) {
-      const addRes = await fetch(`${SUPABASE_URL}/functions/v1/addAthletes`, {
+      const addRes = await fetch(`${SUPABASE_URL}/functions/v1/addAthletesToSeason`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
         },
-        body: JSON.stringify({ names: newAthletes }),
+        body: JSON.stringify({ names: newAthletes, season }),
       });
 
       if (!addRes.ok) {
