@@ -2,11 +2,12 @@
 import React, { useEffect, useState, useCallback } from "react";
 import type { Event } from "../../api/getEvents/route";
 import DashboardTemplate from "@/components/DashboardTemplate";
-import { useSearchParams } from "next/navigation";
 import type { EventType } from "@/app/api/getEventTypes/route";
 import type { Athlete } from "@/app/api/getAthletes/route";
 import { createClient } from "@/lib/supabase/client";
-
+import toast from "react-hot-toast";
+import { confirmModal, loadingModal } from "@/components/ui/modal";
+import Link from "next/link";
 interface PageProps {
   params: Promise<{ id: string }>;
 }
@@ -15,47 +16,44 @@ export default function MeetEventsPage({ params }: PageProps) {
   const [isPublic, setIsPublic] = useState(false);
   async function checkCredentials() {
     const supabase = await createClient();
-
     const { data, error } = await supabase.auth.getClaims();
     if (error || !data?.claims) {
       setIsPublic(true);
     }
   }
 
-  const { id } = React.use(params);
-  const searchParams = useSearchParams();
-  const meetName = searchParams.get("name");
-  const seasonId = searchParams.get("season");
-  const seasonName = searchParams.get("seasonName");
-  const numTeams = Number(searchParams.get("num_teams"));
+  const meetId = React.use(params).id;
+
+  const [meetName, setMeetName] = useState("");
+  const [meetDate, setMeetDate] = useState("");
+  const [meetLocation, setMeetLocation] = useState("");
+  const [meetNumTeams, setMeetNumTeams] = useState(0);
+  const [meetSeasonId, setMeetSeasonId] = useState("");
 
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
 
   const [rows, setRows] = useState<number[]>([0]);
   const [isRelay, setIsRelay] = useState(false);
-  const [addingEvent, setAddingEvent] = useState(false);
-  const [details, setDetails] = useState("");
   const [eventSelected, setEventSelected] = useState(false);
   const [relayPlaces, setRelayPlaces] = useState<Record<number, number>>({});
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/getEvents?id=${id}&target=meet`);
+      const response = await fetch(`/api/getEvents?id=${meetId}&target=meet`);
       if (!response.ok) throw new Error("Failed to fetch events");
       const data = await response.json();
       setEvents(data);
     } catch (e) {
-      setError((e as Error).message);
+      toast.error((e as Error).message);
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [meetId]);
 
   const fetchEventTypes = useCallback(async () => {
     try {
@@ -64,33 +62,58 @@ export default function MeetEventsPage({ params }: PageProps) {
       const data = await response.json();
       setEventTypes(data);
     } catch (e) {
-      console.error((e as Error).message);
+      toast.error((e as Error).message);
     }
   }, []);
 
   const fetchAthletes = useCallback(async () => {
     try {
-      const response = await fetch(`/api/getAthletes?season=${seasonId}`);
+      const response = await fetch(`/api/getAthletes?season=${meetSeasonId}`);
       if (!response.ok) throw new Error("Failed to fetch athletes");
       const data = await response.json();
       setAthletes(data);
     } catch (e) {
-      console.error((e as Error).message);
+      toast.error((e as Error).message);
     }
-  }, [seasonId]);
+  }, [meetSeasonId]);
+
+  const fetchMeet = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/getEntity?id=${meetId}&table=meets`);
+      if (!response.ok) throw new Error("Failed to get meet");
+      const data = await response.json();
+      setMeetName(data.name);
+      setMeetDate(data.date);
+      setMeetLocation(data.location);
+      setMeetNumTeams(data.num_teams);
+      setMeetSeasonId(data.season);
+
+      if (meetId) {
+        await fetchEvents();
+      }
+      if (meetSeasonId) {
+        await fetchAthletes();
+      }
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }, [meetId, fetchAthletes, fetchEvents, meetSeasonId]);
 
   useEffect(() => {
     checkCredentials();
-    fetchEvents();
-    fetchAthletes();
+    fetchMeet();
     fetchEventTypes();
-  }, [fetchEvents, fetchAthletes, fetchEventTypes]);
+  }, [fetchEvents, fetchAthletes, fetchEventTypes, fetchMeet]);
 
   const groupedEvents = events.reduce((acc: Record<string, Event[]>, ev) => {
     if (!acc[ev.type]) acc[ev.type] = [];
     acc[ev.type].push(ev);
     return acc;
   }, {});
+
+  const groupedEventsSorted = Object.fromEntries(
+    Object.entries(groupedEvents).sort(([a], [b]) => a.localeCompare(b))
+  );
 
   const renderGroupedItem = (type: string, eventList: Event[]) => (
     <div
@@ -109,26 +132,43 @@ export default function MeetEventsPage({ params }: PageProps) {
               key={event.id}
               className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400"
             >
-              <span>
-                {event.athlete?.name} |{" "}
-                {(() => {
-                  const place = event.place;
-                  const suffix =
-                    place % 100 >= 11 && place % 100 <= 13
-                      ? "th"
-                      : place % 10 === 1
-                      ? "st"
-                      : place % 10 === 2
-                      ? "nd"
-                      : place % 10 === 3
-                      ? "rd"
-                      : "th";
+              <Link
+                href={`/athletes/${event.athlete.id}`}
+                className="hover:font-medium"
+              >
+                <span>
+                  {event.athlete?.name} | {event.place} Place | {event.points}{" "}
+                  points {event.details && `| ${event.details}`}
+                </span>
+              </Link>
 
-                  return `${place}${suffix}`;
-                })()}{" "}
-                Place | {event.points} points{" "}
-                {event.details && `| ${event.details}`}
-              </span>
+              <button
+                className="text-red-500 hover:text-red-700 font-bold ml-4 hover:cursor-pointer"
+                onClick={async () => {
+                  const confirmed = await confirmModal("Delete event?");
+                  if (!confirmed) return;
+
+                  try {
+                    const response = await fetch(
+                      `/api/deleteEntity?id=${event.id}&table=events`,
+                      {
+                        method: "DELETE",
+                      }
+                    );
+                    if (!response.ok) throw new Error("Failed to delete event");
+                    fetchEvents(); // refresh events
+                    toast.success("Event deleted successfully!");
+                  } catch (err) {
+                    toast.error(
+                      err instanceof Error
+                        ? err.message
+                        : "Error deleting event"
+                    );
+                  }
+                }}
+              >
+                ✕
+              </button>
             </div>
           ))}
       </div>
@@ -139,7 +179,7 @@ export default function MeetEventsPage({ params }: PageProps) {
     <form
       onSubmit={async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        setAddingEvent(true);
+        const adding = loadingModal("Adding event...");
         const form = e.currentTarget;
 
         // Collect event type
@@ -163,9 +203,10 @@ export default function MeetEventsPage({ params }: PageProps) {
         const placesArray: number[] = placeInputs.map((i) => Number(i.value));
         const detailsArray: string[] = detailsInputs.map((i) => i.value);
 
-        const meet = id;
+        const meet = meetId;
+        const numTeams = meetNumTeams;
 
-        const res = await fetch("/api/addEvent", {
+        const res = await fetch("/api/addEvents", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -183,14 +224,12 @@ export default function MeetEventsPage({ params }: PageProps) {
           fetchEvents();
           form.reset();
           setRows([0]);
-          setError(null);
-          setDetails("");
           setRelayPlaces({});
         } else {
-          setError(data.error || "Failed to add event");
+          toast.error(`Failed to add events: ${data.error || "Unknown error"}`);
         }
-
-        setAddingEvent(false);
+        toast.success("Events added successfully!");
+        adding.close();
       }}
       className="flex flex-col gap-4 bg-gray-100 dark:bg-gray-800 p-6 rounded-xl shadow"
     >
@@ -208,8 +247,6 @@ export default function MeetEventsPage({ params }: PageProps) {
 
             if (relayDetected) {
               setRows([0, 1, 2, 3]);
-            } else {
-              setRows([0]);
             }
           }}
           className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -364,43 +401,253 @@ export default function MeetEventsPage({ params }: PageProps) {
 
       <button
         type="submit"
-        disabled={addingEvent}
         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
       >
-        {addingEvent && (
-          <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
-        )}
-        {addingEvent ? "Adding..." : "Add Event"}
+        {"Add Event"}
+      </button>
+    </form>
+  );
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+
+  const importForm = (
+    <form
+      onSubmit={async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+
+        if (!selectedFile) {
+          toast.error("Please select a CSV file to import.");
+          return;
+        }
+
+        const importing = loadingModal("Importing events...");
+
+        const formData = new FormData();
+        formData.append("csvFile", selectedFile);
+        formData.append("meet", meetId);
+        formData.append("season", meetSeasonId || "");
+
+        try {
+          const res = await fetch("/api/importEvents", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json();
+
+          if (res.ok) {
+            toast.success("Events imported successfully!");
+            fetchEvents();
+            setSelectedFile(null);
+          } else {
+            toast.error(data.error || "Failed to import events.");
+          }
+        } catch (err) {
+          toast.error("Error importing CSV file.");
+          setSelectedFile(null);
+        } finally {
+          importing.close();
+        }
+      }}
+      className="flex flex-col gap-4 bg-gray-100 dark:bg-gray-800 p-6 rounded-xl shadow"
+    >
+      <label
+        htmlFor="csvFile"
+        className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-6 cursor-pointer transition-colors duration-200
+      ${
+        selectedFile
+          ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+          : dragOver
+          ? "border-blue-500 bg-gray-50 dark:bg-gray-700"
+          : "border-gray-400 dark:border-gray-600"
+      }
+    `}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          if (e.dataTransfer.files.length > 0)
+            setSelectedFile(e.dataTransfer.files[0]);
+        }}
+      >
+        <div className="flex flex-col items-center gap-2">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-12 w-12 text-gray-400 dark:text-gray-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12v8m0-8l3 3m-3-3l-3 3m6-6V4a2 2 0 00-2-2H8a2 2 0 00-2 2v4"
+            />
+          </svg>
+
+          {!selectedFile ? (
+            <>
+              <span className="text-gray-700 dark:text-gray-200 font-medium">
+                Click or drag a CSV file to upload
+              </span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                Only .csv files are accepted
+              </span>
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-gray-900 dark:text-gray-100 font-medium">
+                {selectedFile.name}
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedFile(null)}
+                className="text-red-500 hover:text-red-700 text-sm"
+              >
+                Remove file
+              </button>
+            </div>
+          )}
+
+          <input
+            type="file"
+            id="csvFile"
+            name="csvFile"
+            accept=".csv"
+            className="hidden"
+            key={selectedFile ? selectedFile.name : "empty"}
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0)
+                setSelectedFile(e.target.files[0]);
+            }}
+          />
+        </div>
+      </label>
+
+      <button
+        type="submit"
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 disabled:opacity-50 hover:cursor-pointer disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        disabled={!selectedFile}
+      >
+        {selectedFile ? `Import '${selectedFile.name}'` : "Import Events"}
       </button>
     </form>
   );
 
   const onDelete = async () => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete ${meetName}?`
-    );
-    if (!confirmed) return;
-    await fetch(`/api/deleteEntity?id=${id}&table=meets`, {
+    await fetch(`/api/deleteEntity?id=${meetId}&table=meets`, {
       method: "DELETE",
     });
-    window.location.href = "/seasons/" + seasonId + `?name=${seasonName}`;
+    window.location.href = "/seasons/" + meetSeasonId;
   };
 
-  // const onBack = function () {
-  //   window.location.href = "/seasons/" + seasonId + `?name=${seasonName}`;
-  // };
+  const totalPoints = events.reduce((sum, ev) => sum + ev.points, 0);
+
+  const athletePointsMap: Record<
+    string,
+    { name: string; id: string; points: number }
+  > = {};
+
+  const eventPointsMap: Record<
+    string,
+    { name: string; id: string; points: number }
+  > = {};
+
+  events.forEach((ev) => {
+    const athleteName = ev.athlete?.name || "Unknown";
+    if (!athletePointsMap[athleteName]) {
+      athletePointsMap[athleteName] = {
+        id: ev.athlete.id,
+        name: athleteName,
+        points: 0,
+      };
+    }
+    athletePointsMap[athleteName].points += ev.points;
+
+    const eventName = ev.type || "Unknown";
+    if (!eventPointsMap[eventName]) {
+      eventPointsMap[eventName] = {
+        name: eventName,
+        id: ev.id,
+        points: 0,
+      };
+    }
+    eventPointsMap[eventName].points += ev.points;
+  });
+
+  const topAthlete = Object.values(athletePointsMap).length
+    ? Object.values(athletePointsMap).reduce((top, athlete) =>
+        athlete.points > top.points ? athlete : top
+      )
+    : null;
+
+  const topEvent = Object.values(eventPointsMap).length
+    ? Object.values(eventPointsMap).reduce((top, event) =>
+        event.points > top.points ? event : top
+      )
+    : null;
+
+  const moreInfo = (
+    <div className="flex flex-col gap-6 w-full">
+      {(totalPoints > 0 || topEvent || topAthlete) && (
+        <div className="flex flex-col gap-3 p-1 w-full">
+          <div className="px-6 py-6 bg-blue-100 dark:bg-blue-800 rounded-xl shadow text-blue-800 dark:text-blue-200 w-full text-center">
+            <div className="flex justify-center gap-6 w-full">
+              {totalPoints > 0 && (
+                <div className="flex flex-col items-center gap-1">
+                  <div className="text-2xl font-bold">{totalPoints}</div>
+                  <div className="font-semibold text-sm">Points</div>
+                </div>
+              )}
+
+              {topEvent && (
+                <div className="flex flex-col items-center gap-1">
+                  <div className="text-2xl font-bold">
+                    {topEvent.name} ({topEvent.points}pts)
+                  </div>
+                  <div className="font-semibold text-sm">Top Event</div>
+                </div>
+              )}
+
+              {topAthlete && (
+                <div className="flex flex-col items-center gap-1">
+                  <div className="text-2xl font-bold">
+                    <Link href={`/athletes/${topAthlete.id}`}>
+                      {topAthlete.name} ({topAthlete.points}pts)
+                    </Link>
+                  </div>
+                  <div className="font-semibold text-sm">Top Athlete</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <DashboardTemplate
       title={meetName ? `${meetName}` : "Meet"}
+      subtitle={`${
+        meetDate ? new Date(meetDate).toLocaleDateString() : ""
+      } | @ ${meetLocation || ""} | ${meetNumTeams} Teams`}
       subject="Events"
-      items={Object.entries(groupedEvents)}
-      renderItem={(entry) => renderGroupedItem(entry[0], entry[1])}
+      items={Object.entries(groupedEventsSorted)}
+      renderItem={(entry: [string, Event[]]) =>
+        renderGroupedItem(entry[0], entry[1])
+      }
       addForm={addForm}
+      importForm={importForm}
       loading={loading}
-      error={error}
       onDelete={onDelete}
       isPublic={isPublic}
+      moreInfo={moreInfo}
     />
   );
 }

@@ -4,47 +4,44 @@ import { useRouter } from "next/navigation";
 import { LogoutButton } from "./logout-button";
 import { Button } from "./ui/button";
 import { LoginButton } from "./login-button";
+import { confirmModal, loadingModal } from "./ui/modal";
+import toast from "react-hot-toast";
 
 interface DashboardTemplateProps<T> {
   title?: string;
+  subtitle?: string;
   subject?: string;
-  subjectInfo?: ReactNode;
   items?: T[];
   renderItem?: (item: T) => ReactNode; // how to render each row
   addForm?: ReactNode; // the form JSX to add a new item
+  importForm?: ReactNode; // the form JSX to import items in bulk
   links?: ReactNode;
   loading?: boolean;
-  error?: string | null;
   onDelete?: () => void;
   onBack?: () => void;
   moreInfo?: ReactNode;
   rosterSection?: ReactNode;
-  viewLink?: boolean;
-  addLink?: boolean;
   hideBackButton?: boolean;
-  isPublic?: boolean;
+  isPublic: boolean;
 }
 
 export default function DashboardTemplate<T>({
   title,
+  subtitle,
   subject,
-  subjectInfo,
   items,
   renderItem,
   addForm,
+  importForm,
   links,
   loading,
-  error,
   onDelete,
   onBack,
   hideBackButton,
   isPublic,
   moreInfo,
   rosterSection,
-  viewLink = true,
-  addLink = true,
 }: DashboardTemplateProps<T>) {
-  const [deleting, setDeleting] = useState(false);
   const router = useRouter();
 
   return (
@@ -62,42 +59,56 @@ export default function DashboardTemplate<T>({
         <div className="w-full flex flex-col gap-4">
           {title && <h1 className="text-4xl font-bold">{title}</h1>}
 
-          {subjectInfo}
+          {subtitle && <h2 className="text-xl text-gray-500">{subtitle}</h2>}
 
           {/* Bubble navigation */}
-          {!isPublic && (
-            <div className="flex flex-wrap gap-2">
-              {viewLink && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    document
-                      .getElementById("existing")
-                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                  }
-                  className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1 cursor-pointer"
-                >
-                  <span className="text-xs">↗</span>
-                  View Existing {subject}
-                </button>
-              )}
-              {addLink && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    document
-                      .getElementById("add-new")
-                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                  }
-                  className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1 cursor-pointer"
-                >
-                  <span className="text-xs">↗</span>
-                  Add New {subject}
-                </button>
-              )}
-              {links}
-            </div>
-          )}
+
+          <div className="flex flex-wrap gap-2">
+            {items && subtitle && (
+              <button
+                type="button"
+                onClick={() =>
+                  document
+                    .getElementById("existing")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+                className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1 cursor-pointer"
+              >
+                <span className="text-xs">↓</span>
+                View Existing {subject}
+              </button>
+            )}
+            {!isPublic && addForm && (
+              <button
+                type="button"
+                onClick={() =>
+                  document
+                    .getElementById("add-new")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+                className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1 cursor-pointer"
+              >
+                <span className="text-xs">↓</span>
+                Add New {subject}
+              </button>
+            )}
+            {!isPublic && importForm && (
+              <button
+                type="button"
+                onClick={() =>
+                  document
+                    .getElementById("import-new")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+                className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1 cursor-pointer"
+              >
+                <span className="text-xs">↓</span>
+                Import {subject}
+              </button>
+            )}
+
+            {links}
+          </div>
 
           {/* Divider */}
           <div className="w-full h-px bg-zinc-200 dark:bg-zinc-800" />
@@ -107,18 +118,15 @@ export default function DashboardTemplate<T>({
 
         {renderItem && (
           <h1 id="existing" className="text-3xl font-bold pt-10">
-            View Existing {subject}
+            Existing {subject}
           </h1>
         )}
-
-        {/* Error */}
-        {error && <p className="text-red-600 mb-2">{error}</p>}
 
         {/* List of items */}
         {items && renderItem && subject && (
           <section className="w-full">
             {loading ? (
-              <p>Loading...</p>
+              <p className="text-center">Loading...</p>
             ) : items.length === 0 ? (
               <p className="text-center">No {subject.toLowerCase()} found.</p>
             ) : (
@@ -136,31 +144,42 @@ export default function DashboardTemplate<T>({
           </div>
         )}
 
-        {rosterSection && (
-          <h1 id="roster-section" className="text-3xl font-bold pt-10">
-            Season Roster
-          </h1>
+        {!isPublic && importForm && (
+          <div className="w-full flex flex-col gap-4">
+            <h1 id="import-new" className="text-3xl font-bold pt-10">
+              Import {subject}
+            </h1>
+            <section className="w-full">{importForm}</section>
+          </div>
         )}
-        <section className="w-full">{rosterSection}</section>
+
+        {rosterSection && (
+          <div className="w-full flex flex-col gap-4">
+            <h1 id="roster-section" className="text-3xl font-bold pt-10">
+              Season Roster
+            </h1>
+            <section className="w-full">{rosterSection}</section>
+          </div>
+        )}
 
         {!isPublic && onDelete && (
           <div className="mt-15 w-full flex justify-center">
             <Button
-              disabled={deleting}
               onClick={async () => {
-                setDeleting(true);
+                const confirmed = await confirmModal(`Delete '${title}'?`);
+                if (!confirmed) return;
+                const deleting = loadingModal("Deleting...");
                 try {
                   await onDelete();
-                } finally {
-                  setDeleting(false);
+                } catch (e) {
+                  toast.error("Error deleting: " + (e as Error).message);
                 }
+                deleting.close();
+                toast.success("Deleted successfully");
               }}
               className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2 disabled:opacity-60 cursor-pointer"
             >
-              {deleting && (
-                <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-              )}
-              {deleting ? "Deleting…" : `Delete ${title}`}
+              {`Delete '${title}'`}
             </Button>
           </div>
         )}

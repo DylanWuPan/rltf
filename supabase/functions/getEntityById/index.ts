@@ -8,6 +8,8 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const parsedBody = EntityByIdSchema.safeParse(body);
 
+    console.log("Received request with body:", body);
+
     if (!parsedBody.success) {
       return new Response(
         JSON.stringify({
@@ -26,11 +28,11 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Delete the event from the events table
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from(table)
-      .delete()
-      .eq("id", id);
+      .select("*")
+      .eq("id", id)
+      .single();
 
     if (error) {
       return new Response(
@@ -40,7 +42,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, deletedId: id }),
+      JSON.stringify({ success: true, ...data }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (err) {

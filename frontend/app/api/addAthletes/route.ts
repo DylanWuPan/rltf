@@ -5,18 +5,11 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export async function POST(req: Request) {
   try {
-    const { name, season } = await req.json();
+    const { names, season } = await req.json();
 
-    if (!name || !season) {
+    if (!names || !Array.isArray(names) || names.length === 0 || !season) {
       return NextResponse.json(
-        { error: "Missing required fields: name and season" },
-        { status: 400 }
-      );
-    }
-
-    if (name === "") {
-      return NextResponse.json(
-        { error: "Please enter the athlete's name." },
+        { error: "Missing required fields: names (array) and season" },
         { status: 400 }
       );
     }
@@ -28,29 +21,26 @@ export async function POST(req: Request) {
       );
     }
 
-    const res = await fetch(
-      `${SUPABASE_URL}/functions/v1/addAthleteToSeason`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-          apikey: SUPABASE_SERVICE_ROLE_KEY,
-        },
-        body: JSON.stringify({ name, season }),
-      }
-    );
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/addAthletesToSeason`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+      },
+      body: JSON.stringify({ names, season }),
+    });
 
     if (!res.ok) {
       const errorText = await res.text();
       return NextResponse.json(
-        { error: `Failed to add athlete: ${errorText}` },
+        { error: `Failed to add athletes: ${errorText}` },
         { status: res.status }
       );
     }
 
-    const newAthlete = await res.json();
-    return NextResponse.json(newAthlete);
+    const data = await res.json();
+    return NextResponse.json({ success: true, added: data.athletes });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(

@@ -5,6 +5,7 @@ import Link from "next/link";
 import DashboardTemplate from "@/components/DashboardTemplate";
 import type { Event } from "../../api/getEvents/route";
 import { createClient } from "@/lib/supabase/client";
+import toast from "react-hot-toast";
 
 type AthleteStats = {
   athleteId: string;
@@ -36,7 +37,6 @@ export default function LeaderboardPage() {
 
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [seasonFilter, setSeasonFilter] = useState<string>(
     filterRequest || "All"
   );
@@ -56,8 +56,7 @@ export default function LeaderboardPage() {
 
         const text = await response.text();
         if (!response.ok) {
-          console.error("Fetch failed. Status:", response.status);
-          console.error("Response body:", text);
+          toast.error(`Error fetching events: ${text}`);
           throw new Error("Failed to fetch events");
         }
 
@@ -65,11 +64,13 @@ export default function LeaderboardPage() {
           const data: Event[] = JSON.parse(text);
           setEvents(data);
         } catch (parseError) {
-          console.error("Invalid JSON received:", text);
+          toast.error("Error parsing server response as JSON");
           throw new Error("Server did not return valid JSON");
         }
       } catch (e) {
-        setError((e as Error).message);
+        toast.error(
+          (e as Error).message || "An error occurred while fetching events"
+        );
       } finally {
         setLoading(false);
       }
@@ -309,9 +310,6 @@ export default function LeaderboardPage() {
       subject="Athletes"
       items={leaderboard}
       loading={loading}
-      error={error}
-      addLink={false}
-      viewLink={false}
       moreInfo={leaderboardSection}
       isPublic={isPublic}
     />

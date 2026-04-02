@@ -4,6 +4,7 @@ export function calculateScores(
     placements: number[]
 ): number[] {
 
+
     const isRelay = eventName.toLowerCase().includes("relay");
 
     const individualScoring: Record<number, number[]> = {

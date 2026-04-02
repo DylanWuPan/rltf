@@ -6,8 +6,13 @@ import DashboardTemplate from "@/components/DashboardTemplate";
 import type { Event } from "../../api/getEvents/route";
 import { createClient } from "@/lib/supabase/client";
 import { useCallback } from "react";
+import toast from "react-hot-toast";
 
-export default function AthletePage() {
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function AthletePage({ params }: PageProps) {
   const [isPublic, setIsPublic] = useState(false);
   async function checkCredentials() {
     const supabase = await createClient();
@@ -18,13 +23,47 @@ export default function AthletePage() {
     }
   }
 
-  const params = useParams();
-  const searchParams = useSearchParams();
+  const athleteId = React.use(params).id;
+  const [athleteName, setAthleteName] = useState("");
+  const [athleteSeasonId, setAthleteSeasonId] = useState("");
+  const [athleteSeasonName, setAthleteSeasonName] = useState("");
 
-  const athleteId = params?.id ?? "";
-  const athleteName = searchParams.get("name") ?? "Athlete";
-  const seasonId = searchParams.get("season") ?? "";
-  const seasonName = searchParams.get("seasonName") ?? "";
+  const fetchSeason = useCallback(
+    async (seasonIdParam?: string) => {
+      const seasonIdToUse = seasonIdParam || athleteSeasonId;
+      if (!seasonIdToUse) return;
+
+      try {
+        const response = await fetch(
+          `/api/getEntity?id=${seasonIdToUse}&table=seasons`
+        );
+        if (!response.ok) throw new Error("Failed to get season");
+        const data = await response.json();
+        setAthleteSeasonName(data.name);
+      } catch (e) {
+        toast.error("Error fetching season details: " + (e as Error).message);
+      }
+    },
+    [athleteSeasonId]
+  );
+
+  const fetchAthlete = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `/api/getEntity?id=${athleteId}&table=athletes`
+      );
+      if (!response.ok) throw new Error("Failed to get athlete");
+      const data = await response.json();
+      setAthleteName(data.name);
+      setAthleteSeasonId(data.season);
+
+      if (data.season) {
+        fetchSeason(data.season);
+      }
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }, [athleteId, fetchSeason]);
 
   const [user, setUser] = useState<string | null>(null);
   const supabase = createClient();
@@ -39,30 +78,29 @@ export default function AthletePage() {
 
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const fetchEvents = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `/api/getEvents?id=${athleteId}&target=athlete`
+      );
+      if (!response.ok) throw new Error("Failed to fetch events");
+      const data: Event[] = await response.json();
+      setEvents(data);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, [athleteId]);
 
   useEffect(() => {
     checkCredentials();
-    if (!athleteId) return;
-    const fetchEvents = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(
-          `/api/getEvents?id=${athleteId}&target=athlete`
-        );
-        if (!response.ok) throw new Error("Failed to fetch events");
-        const data: Event[] = await response.json();
-        setEvents(data);
-      } catch (e) {
-        setError((e as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    fetchAthlete();
     fetchEvents();
     fetchUser();
-  }, [athleteId, fetchUser]);
+  }, [fetchUser, fetchAthlete, fetchEvents]);
 
   const totalPoints = events.reduce((sum, ev) => sum + (ev.points || 0), 0);
   const totalEvents = events.length;
@@ -98,20 +136,102 @@ export default function AthletePage() {
       });
       const minSeconds = Math.min(...timesInSeconds);
 
-      // Format as m:ss.xx
       const minutes = Math.floor(minSeconds / 60);
-      const seconds = minSeconds % 60;
+      const seconds = (minSeconds % 60).toFixed(2);
 
-      // Always show 2 decimal places and ensure leading zero
-      const formattedSeconds = seconds.toFixed(2).padStart(5, "0");
-
-      eventPRs[type] = `${minutes}:${formattedSeconds}`;
+      // Only include minutes if greater than 0
+      eventPRs[type] = minutes > 0 ? `${minutes}:${seconds}` : `${seconds}`;
     } else {
-      // Field events: highest distance
-      const distances = eventDetails.map((d) => parseFloat(d));
-      eventPRs[type] = Math.max(...distances).toString();
+      // Field events: highest distance in format "feet-inches.decimal"
+      const distances = eventDetails.map((d) => {
+        const [feetStr, inchesStr] = d.split("-");
+        const feet = parseInt(feetStr, 10);
+        const inches = parseFloat(inchesStr);
+        return feet * 12 + inches; // total inches
+      });
+
+      const maxInches = Math.max(...distances);
+      const feet = Math.floor(maxInches / 12);
+      const inches = (maxInches % 12).toFixed(2).padStart(5, "0");
+      eventPRs[type] = `${feet}-${inches}`;
     }
   });
+
+  const renderMeetSections = () => {
+    const eventsByMeet: Record<string, Event[]> = {};
+    events.forEach((ev) => {
+      const meetId = ev.meet?.id ?? "unknown";
+      if (!eventsByMeet[meetId]) eventsByMeet[meetId] = [];
+      eventsByMeet[meetId].push(ev);
+    });
+
+    const sortedMeetIds = Object.keys(eventsByMeet).sort((a, b) => {
+      const aDate = eventsByMeet[a][0]?.created_at
+        ? new Date(eventsByMeet[a][0].created_at).getTime()
+        : 0;
+      const bDate = eventsByMeet[b][0]?.created_at
+        ? new Date(eventsByMeet[b][0].created_at).getTime()
+        : 0;
+      return aDate - bDate;
+    });
+
+    return sortedMeetIds.map((meetId) => {
+      const meetEvents = eventsByMeet[meetId].sort(
+        (a, b) =>
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+      const meetName = meetEvents[0]?.meet?.name ?? "Unknown Meet";
+
+      return (
+        <div key={meetId} className="flex flex-col gap-3 mb-6">
+          <div className="flex justify-between items-center mb-2">
+            <Link
+              href={{
+                pathname: `/meets/${meetId}`,
+              }}
+              className="text-xl font-semibold cursor-pointer transition-all duration-200 hover:translate-x-1 hover:text-blue-600 dark:hover:text-blue-400"
+            >
+              <span className="text-s">↗ </span>
+              {meetName}
+            </Link>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              {meetEvents[0]?.meet?.date
+                ? new Date(meetEvents[0].meet.date).toLocaleDateString()
+                : ""}
+            </div>
+          </div>
+
+          {meetEvents.map((ev) => (
+            <div
+              key={ev.id}
+              className="flex items-center justify-between p-4 rounded-xl shadow border bg-white dark:bg-gray-800 hover:shadow-md transition"
+            >
+              <div className="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                {ev.type}
+              </div>
+              <div className="flex flex-wrap gap-4 text-sm text-gray-700 dark:text-gray-300 justify-end">
+                {ev.place !== undefined && (
+                  <span>
+                    <span className="font-semibold">Place:</span> {ev.place}
+                  </span>
+                )}
+                {ev.points !== undefined && (
+                  <span>
+                    <span className="font-semibold">Points:</span> {ev.points}
+                  </span>
+                )}
+                {ev.details && (
+                  <span>
+                    <span className="font-semibold">Details:</span> {ev.details}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    });
+  };
 
   const content = (
     <div className="flex flex-col gap-6 w-full">
@@ -163,100 +283,11 @@ export default function AthletePage() {
         Completed Events
       </h1>
 
-      {(() => {
-        // Group events by meet
-        const eventsByMeet: Record<string, Event[]> = {};
-        events.forEach((ev) => {
-          const meetId = ev.meet?.id ?? "unknown";
-          if (!eventsByMeet[meetId]) eventsByMeet[meetId] = [];
-          eventsByMeet[meetId].push(ev);
-        });
-
-        // Sort meets chronologically by first event in each meet
-        const sortedMeetIds = Object.keys(eventsByMeet).sort((a, b) => {
-          const aDate = eventsByMeet[a][0]?.created_at
-            ? new Date(eventsByMeet[a][0].created_at).getTime()
-            : 0;
-          const bDate = eventsByMeet[b][0]?.created_at
-            ? new Date(eventsByMeet[b][0].created_at).getTime()
-            : 0;
-          return aDate - bDate;
-        });
-
-        return sortedMeetIds.map((meetId) => {
-          const meetEvents = eventsByMeet[meetId].sort(
-            (a, b) =>
-              new Date(a.created_at).getTime() -
-              new Date(b.created_at).getTime()
-          );
-          const meetName = meetEvents[0]?.meet?.name ?? "Unknown Meet";
-
-          return (
-            <div key={meetId} className="flex flex-col gap-3 mb-6">
-              <div className="flex justify-between items-center mb-2">
-                <Link
-                  href={{
-                    pathname: `/meets/${meetId}`,
-                    query: {
-                      name: meetName,
-                      season: seasonId,
-                      seasonName: seasonName,
-                      num_teams: meetEvents[0]?.meet?.num_teams,
-                    },
-                  }}
-                  className="text-xl font-semibold cursor-pointer transition-all duration-200 hover:translate-x-1 hover:text-blue-600 dark:hover:text-blue-400"
-                >
-                  <span className="text-s">↗ </span>
-                  {meetName}
-                </Link>
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  {meetEvents[0]?.meet?.date
-                    ? new Date(meetEvents[0].meet.date).toLocaleDateString()
-                    : ""}
-                </div>
-              </div>
-              {meetEvents.map((ev) => (
-                <div
-                  key={ev.id}
-                  className="flex items-center justify-between p-4 rounded-xl shadow border bg-white dark:bg-gray-800 hover:shadow-md transition"
-                >
-                  <div className="font-semibold text-lg text-gray-900 dark:text-gray-100">
-                    {ev.type}
-                  </div>
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-700 dark:text-gray-300 justify-end">
-                    {ev.place !== undefined && (
-                      <span>
-                        <span className="font-semibold">Place:</span> {ev.place}
-                      </span>
-                    )}
-                    {ev.points !== undefined && (
-                      <span>
-                        <span className="font-semibold">Points:</span>{" "}
-                        {ev.points}
-                      </span>
-                    )}
-                    {ev.details && (
-                      <span>
-                        <span className="font-semibold">Details:</span>{" "}
-                        {ev.details}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          );
-        });
-      })()}
+      {renderMeetSections()}
     </div>
   );
 
   const onDelete = async () => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete ${athleteName}?`
-    );
-    if (!confirmed) return;
-
     try {
       const response = await fetch(
         `/api/deleteEntity?id=${athleteId}&table=athletes`,
@@ -265,37 +296,37 @@ export default function AthletePage() {
         }
       );
       if (!response.ok) throw new Error("Failed to delete athlete");
-      window.location.href = "/seasons/" + seasonId + `?name=${seasonName}`;
+      window.location.href = "/seasons/" + athleteSeasonId;
     } catch (error) {
       console.error("Delete failed:", error);
-      alert("Failed to delete athlete");
+      toast.error("Failed to delete athlete: " + (error as Error).message);
     }
   };
 
   const links = [
-    <button
-      key="leaderboard-link"
-      type="button"
-      onClick={() =>
-        (window.location.href = `/leaderboard/${user}?filter=${seasonName}&athlete=${athleteId}`)
-      }
-      className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1 cursor-pointer"
-    >
-      <span className="text-xs">↗</span>
-      View Ranking
-    </button>,
+    isPublic ? null : (
+      <button
+        key="leaderboard-link"
+        type="button"
+        onClick={() =>
+          (window.location.href = `/leaderboard/${user}?filter=${athleteSeasonName}&athlete=${athleteId}`)
+        }
+        className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1 cursor-pointer"
+      >
+        <span className="text-xs">↗</span>
+        View Ranking
+      </button>
+    ),
   ];
 
   return (
     <div className="flex flex-col gap-4">
       <DashboardTemplate
         title={athleteName}
+        subtitle={athleteSeasonName}
         loading={loading}
-        error={error}
         moreInfo={content}
         onDelete={onDelete}
-        addLink={false}
-        viewLink={false}
         links={links}
         isPublic={isPublic}
       />

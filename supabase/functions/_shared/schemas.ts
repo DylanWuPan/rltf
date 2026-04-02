@@ -29,7 +29,7 @@ export const EventSchema = z.object({
   details: z.string().optional(),
 });
 
-export const DeleteIdSchema = z.object({
+export const EntityByIdSchema = z.object({
   id: z.string().uuid(),
   table: z.string(),
 });

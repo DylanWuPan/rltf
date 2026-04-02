@@ -4,6 +4,8 @@ import DashboardTemplate from "@/components/DashboardTemplate";
 import Link from "next/link";
 import { Season } from "./api/getSeasons/route";
 import { createClient } from "@/lib/supabase/client";
+import toast from "react-hot-toast";
+import { loadingModal } from "@/components/ui/modal";
 
 function parseNameFromEmail(email: string): string {
   const localPart = email.split("@")[0];
@@ -16,12 +18,20 @@ function parseNameFromEmail(email: string): string {
 export default function SeasonsPage() {
   const supabase = createClient();
 
+  const [isPublic, setIsPublic] = useState(false);
+  async function checkCredentials() {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase.auth.getClaims();
+    if (error || !data?.claims) {
+      setIsPublic(true);
+    }
+  }
+
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
 
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [addingSeason, setAddingSeason] = useState(false);
 
   const fetchUser = useCallback(async () => {
     const { data } = await supabase.auth.getUser();
@@ -40,15 +50,15 @@ export default function SeasonsPage() {
       const data = await res.json();
       setSeasons(data);
     } catch (e) {
-      setError((e as Error).message);
+      toast.error(`Error fetching seasons: ${(e as Error).message}`);
     } finally {
       setLoading(false);
-      setError(null);
     }
   }, [user]);
 
   useEffect(() => {
     fetchUser();
+    checkCredentials();
   }, [fetchUser]);
 
   useEffect(() => {
@@ -62,7 +72,6 @@ export default function SeasonsPage() {
       key={season.id}
       href={{
         pathname: `/seasons/${season.id}`,
-        query: { name: season.name },
       }}
       className="group relative flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow duration-200 cursor-pointer mb-4"
     >
@@ -71,7 +80,7 @@ export default function SeasonsPage() {
           {season.name}
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          {new Date(season.start).toLocaleDateString()} →{" "}
+          {new Date(season.start).toLocaleDateString()} -{"> "}
           {new Date(season.end).toLocaleDateString()}
         </p>
       </div>
@@ -85,7 +94,7 @@ export default function SeasonsPage() {
     <form
       onSubmit={async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        setAddingSeason(true);
+        const adding = loadingModal("Adding season...");
         const form = e.currentTarget;
         const formData = new FormData(form);
 
@@ -107,12 +116,12 @@ export default function SeasonsPage() {
         if (res.ok) {
           fetchSeasons();
           form.reset();
-          setError(null);
+          toast.success("Season added successfully!");
         } else {
-          setError(data.error || "Failed to add season");
+          toast.error(`Failed to add season: ${data.error || "Unknown error"}`);
         }
 
-        setAddingSeason(false);
+        adding.close();
       }}
       className="flex flex-col gap-4 bg-gray-100 dark:bg-gray-800 p-6 rounded-xl shadow"
     >
@@ -145,13 +154,9 @@ export default function SeasonsPage() {
       </label>
       <button
         type="submit"
-        disabled={addingSeason}
         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
       >
-        {addingSeason && (
-          <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
-        )}
-        {addingSeason ? "Adding..." : "Add Season"}
+        Add Season
       </button>
     </form>
   );
@@ -160,7 +165,7 @@ export default function SeasonsPage() {
       <button
         type="button"
         onClick={() => (window.location.href = `/leaderboard/${user?.id}`)}
-        className="px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors inline-flex items-center gap-1"
+        className="cursor-pointer px-3 py-1 text-sm rounded-full bg-zinc-100 dark:bg-zinc-800 border border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors inline-flex items-center gap-1"
       >
         <span className="text-xs">↗</span>
         View Team Leaderboard
@@ -176,9 +181,9 @@ export default function SeasonsPage() {
       renderItem={renderItem}
       addForm={addForm}
       loading={loading}
-      error={error}
       hideBackButton={true}
       links={links}
+      isPublic={isPublic}
     />
   );
 }
