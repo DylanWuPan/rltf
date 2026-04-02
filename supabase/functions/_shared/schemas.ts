@@ -1,4 +1,4 @@
-import { z } from "https://esm.sh/zod@3.23.2";
+import { z } from "zod";
 
 export const SeasonSchema = z.object({
   name: z.string().min(1),
