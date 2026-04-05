@@ -128,77 +128,77 @@ export default function MeetEventsPage({ params }: PageProps) {
     return details;
   }
   const renderGroupedItem = (type: string, eventList: Event[]) => (
-    <div
-      key={type}
-      className="p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow mb-4"
-    >
-      <h3 className="text-lg text-center font-semibold text-gray-900 dark:text-gray-100 mb-2">
+    <div key={type}>
+      <h3 className="text-2xl text-center font-semibold text-gray-900 dark:text-gray-100 mb-2">
         {type}
       </h3>
-      <div className="w-full overflow-x-auto">
-        <div className="grid grid-cols-[2fr_1fr_1fr_2fr_auto] gap-2 font-semibold text-gray-700 dark:text-gray-200 px-2 py-1 border-b border-gray-300 dark:border-gray-600">
-          <div>Name</div>
-          <div>Place</div>
-          <div>Points</div>
-          <div>Details</div>
-          <div className="w-5" />
-        </div>
-        {eventList
-          .sort((a, b) => {
-            const placeA = a.place ?? Infinity;
-            const placeB = b.place ?? Infinity;
-            return placeA - placeB;
-          })
-          .map((event) => (
-            <div
-              key={event.id}
-              className="grid grid-cols-[2fr_1fr_1fr_2fr_auto] gap-2 items-center text-sm text-gray-600 dark:text-gray-400 px-2 py-1 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 rounded transition"
-            >
-              <div>
-                <Link
-                  href={`/athletes/${event.athlete.id}`}
-                  className="hover:font-medium"
-                >
-                  {event.athlete?.name}
-                </Link>
-              </div>
-              <div>{toOrdinal(event.place)}</div>
-              <div>{event.points}</div>
-              <div>{detailsDisplay(event.details)}</div>
-              <button
-                className="text-red-500 hover:text-red-700 font-bold ml-2 hover:cursor-pointer col-span-4 md:col-span-1 md:col-start-5 justify-self-end"
-                style={{
-                  gridColumn: "5",
-                  justifySelf: "end",
-                  display: "inline-block",
-                }}
-                onClick={async () => {
-                  const confirmed = await confirmModal("Delete event?");
-                  if (!confirmed) return;
-                  try {
-                    const response = await fetch(
-                      `/api/deleteEntity?id=${event.id}&table=events`,
-                      {
-                        method: "DELETE",
-                      }
-                    );
-                    if (!response.ok) throw new Error("Failed to delete event");
-                    fetchEvents(); // refresh events
-                    toast.success("Event deleted successfully!");
-                  } catch (err) {
-                    toast.error(
-                      err instanceof Error
-                        ? err.message
-                        : "Error deleting event"
-                    );
-                  }
-                }}
-                title="Delete event"
+      <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow mb-12">
+        <div className="w-full overflow-x-auto">
+          <div className="grid grid-cols-[2fr_1fr_1fr_2fr_auto] gap-2 font-semibold text-gray-700 dark:text-gray-200 px-2 py-1 border-b border-gray-300 dark:border-gray-600">
+            <div>Name</div>
+            <div>Place</div>
+            <div>Points</div>
+            <div>Details</div>
+            <div className="w-5" />
+          </div>
+          {eventList
+            .sort((a, b) => {
+              const placeA = a.place ?? Infinity;
+              const placeB = b.place ?? Infinity;
+              return placeA - placeB;
+            })
+            .map((event) => (
+              <div
+                key={event.id}
+                className="grid grid-cols-[2fr_1fr_1fr_2fr_auto] gap-2 items-center text-sm text-gray-600 dark:text-gray-400 px-2 py-1 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 rounded transition"
               >
-                ✕
-              </button>
-            </div>
-          ))}
+                <div>
+                  <Link
+                    href={`/athletes/${event.athlete.id}`}
+                    className="hover:font-medium"
+                  >
+                    {event.athlete?.name}
+                  </Link>
+                </div>
+                <div>{toOrdinal(event.place)}</div>
+                <div>{event.points}</div>
+                <div>{detailsDisplay(event.details)}</div>
+                <button
+                  className="text-red-500 hover:text-red-700 font-bold ml-2 hover:cursor-pointer col-span-4 md:col-span-1 md:col-start-5 justify-self-end"
+                  style={{
+                    gridColumn: "5",
+                    justifySelf: "end",
+                    display: "inline-block",
+                  }}
+                  onClick={async () => {
+                    const confirmed = await confirmModal("Delete event?");
+                    if (!confirmed) return;
+                    try {
+                      const response = await fetch(
+                        `/api/deleteEntity?id=${event.id}&table=events`,
+                        {
+                          method: "DELETE",
+                        }
+                      );
+                      if (!response.ok)
+                        throw new Error("Failed to delete event");
+                      fetchEvents(); // refresh events
+                      toast.success("Event deleted successfully!");
+                    } catch (err) {
+                      toast.error(
+                        err instanceof Error
+                          ? err.message
+                          : "Error deleting event"
+                      );
+                    }
+                  }}
+                  title="Delete event"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+        </div>
       </div>
     </div>
   );
@@ -632,7 +632,7 @@ export default function MeetEventsPage({ params }: PageProps) {
             {totalEvents} Events
           </span>
           <span className="text-sm text-gray-500 dark:text-gray-400">
-            {totalPoints.toFixed(2)} pts
+            {Math.round(totalPoints)} pts{" "}
           </span>
         </div>
       )}

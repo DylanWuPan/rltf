@@ -135,12 +135,6 @@ export default function SeasonMeetsPage({ params }: PageProps) {
       key={meet.id}
       href={{
         pathname: `/meets/${meet.id}`,
-        query: {
-          name: meet.name,
-          season: seasonId,
-          seasonName,
-          num_teams: meet.num_teams,
-        },
       }}
       className="group relative flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow duration-200 cursor-pointer mb-4"
     >
@@ -256,11 +250,6 @@ export default function SeasonMeetsPage({ params }: PageProps) {
               key={athlete.id}
               href={{
                 pathname: `/athletes/${athlete.id}`,
-                query: {
-                  name: athlete.name,
-                  season: seasonId,
-                  seasonName,
-                },
               }}
               className="group relative flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow duration-200 cursor-pointer"
             >
