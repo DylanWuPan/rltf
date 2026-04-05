@@ -11,11 +11,18 @@ Deno.serve(async (req) => {
     console.log("Received body:", body);
     const parsedBody = EventsArraySchema.safeParse(body);
 
-    console.log("Parsed body:", parsedBody);
+    if (!parsedBody.success) {
+      console.log("Zod validation errors:", parsedBody.error.format());
+    } else {
+      console.log("Parsed body:", parsedBody);
+    }
 
     if (!parsedBody.success) {
       return new Response(
-        JSON.stringify({ error: "Invalid input", details: parsedBody.error.format() }),
+        JSON.stringify({
+          error: "Invalid input",
+          details: parsedBody.error.format(),
+        }),
         { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
@@ -25,14 +32,14 @@ Deno.serve(async (req) => {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } }
+      { auth: { persistSession: false } },
     );
 
     const { data, error } = await supabase
       .from("events")
       .upsert(
         events,
-        { onConflict: "meet,athlete,type" }
+        { onConflict: "meet,athlete,type" },
       )
       .select();
 
@@ -48,7 +55,6 @@ Deno.serve(async (req) => {
       JSON.stringify({ success: true, events: data }),
       { status: 201, headers: { "Content-Type": "application/json" } },
     );
-
   } catch (err) {
     console.error(err);
     return new Response(

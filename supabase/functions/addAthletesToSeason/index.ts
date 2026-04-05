@@ -13,7 +13,10 @@ Deno.serve(async (req) => {
 
     if (!parsedBody.success) {
       return new Response(
-        JSON.stringify({ error: "Invalid input", details: parsedBody.error.format() }),
+        JSON.stringify({
+          error: "Invalid input",
+          details: parsedBody.error.format(),
+        }),
         { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
@@ -23,16 +26,19 @@ Deno.serve(async (req) => {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } }
+      { auth: { persistSession: false } },
     );
 
-    const athletesToInsert = names.map((name) => ({ name: name.trim(), season }));
+    const athletesToInsert = names.map((name) => ({
+      name: name.trim(),
+      season,
+    }));
 
     const { data, error } = await supabase
       .from("athletes")
       .upsert(
         athletesToInsert,
-        { onConflict: "name,season", ignoreDuplicates: true }
+        { onConflict: "name,season", ignoreDuplicates: true },
       )
       .select();
 
@@ -43,11 +49,13 @@ Deno.serve(async (req) => {
       );
     }
 
+    console.log(`Added ${data.length} athletes to season ${season}`);
+    console.log("Added athletes:", data);
+
     return new Response(
       JSON.stringify({ success: true, athletes: data }),
       { status: 201, headers: { "Content-Type": "application/json" } },
     );
-
   } catch (err) {
     console.error(err);
     return new Response(

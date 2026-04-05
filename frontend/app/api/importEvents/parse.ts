@@ -8,7 +8,9 @@ export interface Event {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const SCHOOL_CODE = "ROXB";
+// Hy-Tek uses different school codes across meet files for the same school.
+// reslt001.csv uses "ROLA", reslt002.csv uses "ROXB".
+const SCHOOL_CODES = new Set(["ROXB", "ROLA"]);
 
 const EVENT_NAME_MAP: Record<string, string> = {
   "100": "100 Meters",
@@ -89,7 +91,7 @@ function isValidResult(result: string): boolean {
  * [18–21] (unused)
  * [22] last name
  * [23] first name
- * [27] school code  – e.g. "ROXB"
+ * [27] school code  – e.g. "ROXB" or "ROLA" (both = Roxbury Latin)
  *
  * ---
  *
@@ -102,11 +104,15 @@ function isValidResult(result: string): boolean {
  * [5]  gender
  * [9]  round        – "F" | "P"
  * [10] team time
- * [12] school code  – e.g. "ROXB"
+ * [12] school code  – e.g. "ROXB" or "ROLA"
  * [13] overall place
  * [17] points
  * [18+] repeating athlete blocks, each 9 cols wide:
- *       lastName ; firstName ; suffix ; gender ; (empty) ; 0 ; grade ; 0 ; athleteID
+ *       lastName ; firstName ; suffix ; gender ; (DOB or empty) ; age/0 ; grade ; 0 ; (empty or athleteID)
+ *
+ * Note: Hy-Tek 4.x appends a string athlete ID in the last slot of each
+ * relay block; Hy-Tek 6.x leaves it empty and may include a DOB instead.
+ * Both variants are 9 columns wide, so the block stride is the same.
  */
 export function parseResults(csvBuffer: Buffer): Event[] {
   const raw = csvBuffer.toString("utf-8");
@@ -125,19 +131,20 @@ export function parseResults(csvBuffer: Buffer): Event[] {
 
     if (recordType === "R") {
       // School code is at col [12] for relay rows
-      if (cols[12]?.trim() !== SCHOOL_CODE) continue;
+      if (!SCHOOL_CODES.has(cols[12]?.trim())) continue;
 
       const details = cols[10]?.trim() ?? "";
       if (!isValidResult(details)) continue;
 
       const type = resolveEventName(cols[4]?.trim() ?? "", true);
       const rawPlace = cols[13]?.trim() ?? "";
-      const place: number | null =
-        rawPlace && rawPlace !== "0" ? parseInt(rawPlace, 10) : null;
+      const place: number | null = rawPlace && rawPlace !== "0"
+        ? parseInt(rawPlace, 10)
+        : null;
       const totalPoints = parseFloat(cols[17]?.trim() ?? "0") || 0;
 
       // Athlete blocks start at col 18, each block is 9 cols wide:
-      // [lastName, firstName, suffix, gender, empty, 0, grade, 0, athleteID]
+      // [lastName, firstName, suffix, gender, DOB/empty, age/0, grade, 0, empty/athleteID]
       const athletes: string[] = [];
       for (let i = 18; i + 1 < cols.length; i += 9) {
         const last = cols[i]?.trim();
@@ -154,15 +161,16 @@ export function parseResults(csvBuffer: Buffer): Event[] {
       }
     } else {
       // School code is at col [27] for individual rows
-      if (cols[27]?.trim() !== SCHOOL_CODE) continue;
+      if (!SCHOOL_CODES.has(cols[27]?.trim())) continue;
 
       const details = cols[10]?.trim() ?? "";
       if (!isValidResult(details)) continue;
 
       const type = resolveEventName(cols[4]?.trim() ?? "");
       const rawPlace = cols[13]?.trim() ?? "";
-      const place: number | null =
-        rawPlace && rawPlace !== "0" ? parseInt(rawPlace, 10) : null;
+      const place: number | null = rawPlace && rawPlace !== "0"
+        ? parseInt(rawPlace, 10)
+        : null;
       const points = parseFloat(cols[17]?.trim() ?? "0") || 0;
 
       const lastName = cols[22]?.trim() ?? "";
@@ -173,5 +181,5 @@ export function parseResults(csvBuffer: Buffer): Event[] {
     }
   }
 
-  return results;
+  return results.filter((e) => e.place !== null);
 }

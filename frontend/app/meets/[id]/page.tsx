@@ -115,39 +115,66 @@ export default function MeetEventsPage({ params }: PageProps) {
     Object.entries(groupedEvents).sort(([a], [b]) => a.localeCompare(b))
   );
 
+  // Helper to convert number to ordinal string
+  function toOrdinal(n: number | null | undefined): string {
+    if (n === null || n === undefined || isNaN(Number(n))) return "N/A";
+    const s = ["th", "st", "nd", "rd"],
+      v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  }
+  // Helper for details display
+  function detailsDisplay(details: string | null | undefined): string {
+    if (!details || details === "NT") return "N/A";
+    return details;
+  }
   const renderGroupedItem = (type: string, eventList: Event[]) => (
     <div
       key={type}
       className="p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow mb-4"
     >
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+      <h3 className="text-lg text-center font-semibold text-gray-900 dark:text-gray-100 mb-2">
         {type}
       </h3>
-
-      <div className="flex flex-col gap-1">
+      <div className="w-full overflow-x-auto">
+        <div className="grid grid-cols-[2fr_1fr_1fr_2fr_auto] gap-2 font-semibold text-gray-700 dark:text-gray-200 px-2 py-1 border-b border-gray-300 dark:border-gray-600">
+          <div>Name</div>
+          <div>Place</div>
+          <div>Points</div>
+          <div>Details</div>
+          <div className="w-5" />
+        </div>
         {eventList
-          .sort((a, b) => a.place - b.place)
+          .sort((a, b) => {
+            const placeA = a.place ?? Infinity;
+            const placeB = b.place ?? Infinity;
+            return placeA - placeB;
+          })
           .map((event) => (
             <div
               key={event.id}
-              className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400"
+              className="grid grid-cols-[2fr_1fr_1fr_2fr_auto] gap-2 items-center text-sm text-gray-600 dark:text-gray-400 px-2 py-1 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 rounded transition"
             >
-              <Link
-                href={`/athletes/${event.athlete.id}`}
-                className="hover:font-medium"
-              >
-                <span>
-                  {event.athlete?.name} | {event.place} Place | {event.points}{" "}
-                  points {event.details && `| ${event.details}`}
-                </span>
-              </Link>
-
+              <div>
+                <Link
+                  href={`/athletes/${event.athlete.id}`}
+                  className="hover:font-medium"
+                >
+                  {event.athlete?.name}
+                </Link>
+              </div>
+              <div>{toOrdinal(event.place)}</div>
+              <div>{event.points}</div>
+              <div>{detailsDisplay(event.details)}</div>
               <button
-                className="text-red-500 hover:text-red-700 font-bold ml-4 hover:cursor-pointer"
+                className="text-red-500 hover:text-red-700 font-bold ml-2 hover:cursor-pointer col-span-4 md:col-span-1 md:col-start-5 justify-self-end"
+                style={{
+                  gridColumn: "5",
+                  justifySelf: "end",
+                  display: "inline-block",
+                }}
                 onClick={async () => {
                   const confirmed = await confirmModal("Delete event?");
                   if (!confirmed) return;
-
                   try {
                     const response = await fetch(
                       `/api/deleteEntity?id=${event.id}&table=events`,
@@ -166,6 +193,7 @@ export default function MeetEventsPage({ params }: PageProps) {
                     );
                   }
                 }}
+                title="Delete event"
               >
                 ✕
               </button>
@@ -328,7 +356,7 @@ export default function MeetEventsPage({ params }: PageProps) {
                 />
               </label>
 
-              {!isRelay && rows.length > 1 && (
+              {!isRelay && !isPublic && rows.length > 1 && (
                 <button
                   type="button"
                   onClick={() =>
@@ -547,6 +575,7 @@ export default function MeetEventsPage({ params }: PageProps) {
   };
 
   const totalPoints = events.reduce((sum, ev) => sum + ev.points, 0);
+  const totalEvents = events.length;
 
   const athletePointsMap: Record<
     string,
@@ -593,39 +622,47 @@ export default function MeetEventsPage({ params }: PageProps) {
     : null;
 
   const moreInfo = (
-    <div className="flex flex-col gap-6 w-full">
-      {(totalPoints > 0 || topEvent || topAthlete) && (
-        <div className="flex flex-col gap-3 p-1 w-full">
-          <div className="px-6 py-6 bg-blue-100 dark:bg-blue-800 rounded-xl shadow text-blue-800 dark:text-blue-200 w-full text-center">
-            <div className="flex justify-center gap-6 w-full">
-              {totalPoints > 0 && (
-                <div className="flex flex-col items-center gap-1">
-                  <div className="text-2xl font-bold">{totalPoints}</div>
-                  <div className="font-semibold text-sm">Points</div>
-                </div>
-              )}
-
-              {topEvent && (
-                <div className="flex flex-col items-center gap-1">
-                  <div className="text-2xl font-bold">
-                    {topEvent.name} ({topEvent.points}pts)
-                  </div>
-                  <div className="font-semibold text-sm">Top Event</div>
-                </div>
-              )}
-
-              {topAthlete && (
-                <div className="flex flex-col items-center gap-1">
-                  <div className="text-2xl font-bold">
-                    <Link href={`/athletes/${topAthlete.id}`}>
-                      {topAthlete.name} ({topAthlete.points}pts)
-                    </Link>
-                  </div>
-                  <div className="font-semibold text-sm">Top Athlete</div>
-                </div>
-              )}
-            </div>
-          </div>
+    <div className="flex gap-3 w-full">
+      {totalPoints > 0 && (
+        <div className="flex flex-col items-center gap-1 flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-4">
+          <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Team Stats
+          </span>
+          <span className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            {totalEvents} Events
+          </span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {totalPoints.toFixed(2)} pts
+          </span>
+        </div>
+      )}
+      {topEvent && (
+        <div className="flex flex-col items-center gap-1 flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-4">
+          <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Top Event
+          </span>
+          <span className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            {topEvent.name}
+          </span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {topEvent.points} pts
+          </span>
+        </div>
+      )}
+      {topAthlete && (
+        <div className="flex flex-col items-center gap-1 flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-4">
+          <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Top Athlete
+          </span>
+          <Link
+            href={`/athletes/${topAthlete.id}`}
+            className="text-2xl font-semibold text-gray-900 dark:text-gray-100 hover:underline text-center"
+          >
+            {topAthlete.name}
+          </Link>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {topAthlete.points} pts
+          </span>
         </div>
       )}
     </div>

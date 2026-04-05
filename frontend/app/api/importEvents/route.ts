@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { parseResults, Event } from "./parse";
-import {GET} from "@/app/api/getAthletes/route";
-
+import { Event, parseResults } from "./parse";
+import { GET } from "@/app/api/getAthletes/route";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
 
 // ─── POST handler (Next.js App Router) ────────────────────────────────────────
 
@@ -15,7 +13,7 @@ export async function POST(request: Request) {
     if (!contentType.includes("multipart/form-data")) {
       return new Response(
         JSON.stringify({ error: "Content-Type must be multipart/form-data" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
 
@@ -23,25 +21,24 @@ export async function POST(request: Request) {
     const file = formData.get("csvFile");
     const meet = formData.get("meet");
     const season = formData.get("season");
-          
+
     if (!(file instanceof Blob)) {
       return new Response(
         JSON.stringify({ error: "No file uploaded or invalid file" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
 
     if (typeof meet !== "string" || meet.trim() === "") {
       return new Response(
         JSON.stringify({ error: "Meet is required and must be a string" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const events : Event[] = parseResults(buffer);
+    const events: Event[] = parseResults(buffer);
 
-    
     const url = new URL(request.url);
     url.pathname = "/api/getAthletes";
     url.searchParams.set("season", String(season));
@@ -70,14 +67,17 @@ export async function POST(request: Request) {
       }
     }
     if (newAthletes.length > 0) {
-      const addRes = await fetch(`${SUPABASE_URL}/functions/v1/addAthletesToSeason`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      const addRes = await fetch(
+        `${SUPABASE_URL}/functions/v1/addAthletesToSeason`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          },
+          body: JSON.stringify({ names: newAthletes, season }),
         },
-        body: JSON.stringify({ names: newAthletes, season }),
-      });
+      );
 
       if (!addRes.ok) {
         let errorData;
@@ -87,20 +87,41 @@ export async function POST(request: Request) {
           errorData = await addRes.text();
         }
         return NextResponse.json(
-          { error: `Failed to add new athletes: ${errorData?.error || errorData}` },
-          { status: addRes.status }
+          {
+            error: `Failed to add new athletes: ${
+              errorData?.error || errorData
+            }`,
+          },
+          { status: addRes.status },
         );
       }
 
-      const addedAthletes = await addRes.json();
+      const addedAthletesRes = await addRes.json();
+      const addedAthletes = addedAthletesRes.athletes ??
+        addedAthletesRes.added ?? addedAthletesRes;
+
+      console.log("Added athletes response:", addedAthletes);
+
+      if (!Array.isArray(addedAthletes)) {
+        console.error(
+          "Unexpected response from addAthletesToSeason:",
+          addedAthletesRes,
+        );
+        return NextResponse.json(
+          { error: "Failed to add new athletes: invalid response format" },
+          { status: 500 },
+        );
+      }
+
       for (const a of addedAthletes) {
+        if (!a || !a.name || !a.id) continue;
         const normalizedName = a.name.replace("\t", " ").trim();
         if (!athleteSet.has(normalizedName)) {
           athleteSet.add(normalizedName);
           normalizedAthletes.push({ id: a.id, name: normalizedName });
         }
       }
-    } 
+    }
 
     // Build athlete map
     const athleteMap: Record<string, string> = {};
@@ -118,6 +139,8 @@ export async function POST(request: Request) {
       meet,
     }));
 
+    console.log(`Prepared ${newEvents.length} events to add to meet ${meet}`);
+
     const res = await fetch(
       `${SUPABASE_URL}/functions/v1/addEventsToMeet`,
       {
@@ -127,7 +150,7 @@ export async function POST(request: Request) {
           Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
         },
         body: JSON.stringify(newEvents),
-      }
+      },
     );
 
     if (!res.ok) {
@@ -139,14 +162,18 @@ export async function POST(request: Request) {
       }
       return NextResponse.json(
         { error: `Failed to import events: ${errorData?.error || errorData}` },
-        { status: res.status }
+        { status: res.status },
       );
     }
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (err) {
     return NextResponse.json(
-      { error: typeof err === 'string' ? err : JSON.stringify(err, Object.getOwnPropertyNames(err)) },
-      { status: 503 }
+      {
+        error: typeof err === "string"
+          ? err
+          : JSON.stringify(err, Object.getOwnPropertyNames(err)),
+      },
+      { status: 503 },
     );
   }
 }

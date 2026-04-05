@@ -2,11 +2,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.46.1";
 import z from "https://esm.sh/zod@3.23.2";
 import { EntityByIdSchema } from "../_shared/schemas.ts";
 
-
 Deno.serve(async (req) => {
   try {
     const body = await req.json();
     const parsedBody = EntityByIdSchema.safeParse(body);
+
+    console.log("Received request with body:", body);
 
     if (!parsedBody.success) {
       return new Response(
@@ -14,7 +15,7 @@ Deno.serve(async (req) => {
           error: "Invalid input",
           details: parsedBody.error.format(),
         }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
 
@@ -23,7 +24,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } }
+      { auth: { persistSession: false } },
     );
 
     // Delete the event from the events table
@@ -33,21 +34,22 @@ Deno.serve(async (req) => {
       .eq("id", id);
 
     if (error) {
+      console.error("Error deleting entity:", error);
       return new Response(
         JSON.stringify({ error: error.message }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        { status: 500, headers: { "Content-Type": "application/json" } },
       );
     }
 
     return new Response(
       JSON.stringify({ success: true, deletedId: id }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+      { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (err) {
     console.error(err);
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
 });

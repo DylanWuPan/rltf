@@ -24,7 +24,7 @@ export const EventSchema = z.object({
   type: z.string().min(1),
   athlete: z.string().min(1),
   meet: z.string().uuid(),
-  place: z.number().int().min(1),
+  place: z.number().int().min(1).nullable(),
   points: z.number().min(0),
   details: z.string().optional(),
 });
