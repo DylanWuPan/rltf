@@ -116,7 +116,7 @@ export default function DashboardTemplate<T>({
 
         {moreInfo}
 
-        {renderItem && (
+        {!isPublic && renderItem && (
           <h1 id="existing" className="text-3xl font-bold pt-10">
             Existing {subject}
           </h1>
