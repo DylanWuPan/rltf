@@ -169,7 +169,7 @@ export default function AthletesClient({ id }: { id: string }) {
       {prTypes.length > 0 && (
         <div className="flex flex-wrap gap-2 items-center justify-center w-full">
           <div className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm text-gray-700 dark:text-gray-300">
-            <span className="font-medium">PRs: </span>
+            <span className="font-bold">PRs: </span>
           </div>
           {prTypes.map((type) => (
             <div
@@ -204,11 +204,12 @@ export default function AthletesClient({ id }: { id: string }) {
         });
 
         return sortedMeetIds.map((meetId) => {
-          const meetEvents = [...byMeet[meetId]].sort(
-            (a, b) =>
-              new Date(a.created_at).getTime() -
-              new Date(b.created_at).getTime()
-          );
+          const meetEvents = [...byMeet[meetId]].sort((a, b) => {
+            const placeA = a.place ?? Number.MAX_SAFE_INTEGER;
+            const placeB = b.place ?? Number.MAX_SAFE_INTEGER;
+            if (placeA !== placeB) return placeA - placeB;
+            return a.type.localeCompare(b.type);
+          });
           const meetName = meetEvents[0]?.meet?.name ?? "Unknown Meet";
           const meetDate = meetEvents[0]?.meet?.date
             ? new Date(meetEvents[0].meet.date).toLocaleDateString()
