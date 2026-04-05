@@ -1,5 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -28,7 +28,7 @@ export async function updateSession(request: NextRequest) {
           );
         },
       },
-    }
+    },
   );
 
   // Do not run code between createServerClient and
@@ -49,10 +49,12 @@ export async function updateSession(request: NextRequest) {
     !request.nextUrl.pathname.startsWith("/meets") &&
     !request.nextUrl.pathname.startsWith("/api") &&
     !request.nextUrl.pathname.startsWith("/events") &&
-    !request.nextUrl.pathname.startsWith("/seasons")
+    !request.nextUrl.pathname.startsWith("/seasons") &&
+    !request.nextUrl.pathname.startsWith("/seasonLeaderboard")
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
+    url.search = "";
     return NextResponse.redirect(url);
   }
 

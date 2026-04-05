@@ -9,14 +9,21 @@ Deno.serve(async (req) => {
 
     if (!id || !target) {
       return new Response(
-        JSON.stringify({ error: "Invalid input", details: "Missing id or target field" }),
+        JSON.stringify({
+          error: "Invalid input",
+          details: "Missing id or target field",
+        }),
         { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
 
-    if (!["athlete", "meet", "user"].includes(target)) {
+    if (!["athlete", "meet", "user", "season"].includes(target)) {
       return new Response(
-        JSON.stringify({ error: "Invalid target", details: "Target must be one of 'athlete', 'meet', or 'season'" }),
+        JSON.stringify({
+          error: "Invalid target",
+          details:
+            "Target must be one of 'athlete', 'meet', 'user', or 'season'",
+        }),
         { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
@@ -45,6 +52,31 @@ Deno.serve(async (req) => {
           )
         `)
         .eq("meets.season.user", id)
+        .order("created_at", { ascending: true });
+
+      data = response.data;
+      error = response.error;
+    } else if (target === "season") {
+      const response = await supabaseClient
+        .from("events")
+        .select(`
+          id,
+          type,
+          place,
+          points,
+          details,
+          created_at,
+          athlete:athletes(id, name),
+          meet:meets!inner(
+            id,
+            name,
+            date,
+            location,
+            num_teams,
+            season:seasons!inner(id, name, start, end, user)
+          )
+        `)
+        .eq("meets.season", id)
         .order("created_at", { ascending: true });
 
       data = response.data;
@@ -86,7 +118,6 @@ Deno.serve(async (req) => {
       JSON.stringify({ success: true, data }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
-
   } catch (err) {
     console.error(err);
     return new Response(
@@ -104,5 +135,5 @@ Deno.serve(async (req) => {
   curl -X POST "https://yswwvmzncodhxafkzswz.supabase.co/functions/v1/getMeetsOfSeason" \
   -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlzd3d2bXpuY29kaHhhZmt6c3d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzODMwNDcsImV4cCI6MjA4MDk1OTA0N30.PbXFC1FLzN8oEiUCIuL7u662SteIEcsxuGff9icHZ9A' \
   -H "Content-Type: application/json" \
-  -d '{"season": "58269bd3-9896-4790-a528-52ac2ba7eae3"}'    
+  -d '{"season": "58269bd3-9896-4790-a528-52ac2ba7eae3"}'
 */

@@ -2,13 +2,20 @@ import { NextResponse } from "next/server";
 
 export type Event = {
   id: string;
-  athlete: {id: string, name: string};
+  athlete: { id: string; name: string };
   type: string;
   place: number;
   points: number;
   details: string;
   created_at: string;
-  meet: {id: string, name: string, date: string, location: string, num_teams: number, season: {id: string, name: string, start: string, end: string}}
+  meet: {
+    id: string;
+    name: string;
+    date: string;
+    location: string;
+    num_teams: number;
+    season: { id: string; name: string; start: string; end: string };
+  };
 };
 
 export async function GET(request: Request) {
@@ -21,15 +28,18 @@ export async function GET(request: Request) {
 
   if (!supabaseUrl || !serviceRoleKey) {
     return NextResponse.json(
-      { error: "Server misconfiguration: Missing Supabase environment variables" },
-      { status: 500 }
+      {
+        error:
+          "Server misconfiguration: Missing Supabase environment variables",
+      },
+      { status: 500 },
     );
   }
 
   if (!id || !target) {
     return NextResponse.json(
       { error: "Missing id or target query parameter" },
-      { status: 400 }
+      { status: 400 },
     );
   }
   const res = await fetch(
@@ -40,15 +50,15 @@ export async function GET(request: Request) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${serviceRoleKey}`,
       },
-      body: JSON.stringify({ id, target}),
-    }
+      body: JSON.stringify({ id, target }),
+    },
   );
 
   if (!res.ok) {
     const text = await res.text();
     return NextResponse.json(
-      { error: "Failed to fetch events for athlete", details: text },
-      { status: 500 }
+      { error: "Failed to fetch events for entity", details: text },
+      { status: 500 },
     );
   }
 
@@ -59,14 +69,14 @@ export async function GET(request: Request) {
     const text = await res.text();
     return NextResponse.json(
       { error: "Supabase returned invalid JSON", details: text },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
   if (!json || !json.data) {
     return NextResponse.json(
       { error: "Unexpected response format from Supabase", details: json },
-      { status: 500 }
+      { status: 500 },
     );
   }
 

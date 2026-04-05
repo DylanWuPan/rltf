@@ -1,6 +1,6 @@
-import MeetsClient from "./MeetsClient";
+import SeasonLeaderboardClient from "./SeasonLeaderboardClient";
 
-async function getMeet(id: string) {
+async function getSeason(id: string) {
   const res = await fetch(
     `${process.env.SUPABASE_URL}/functions/v1/getEntityById`,
     {
@@ -12,7 +12,7 @@ async function getMeet(id: string) {
           process.env.SUPABASE_SERVICE_ROLE_KEY as string
         }`,
       },
-      body: JSON.stringify({ id, table: "meets" }),
+      body: JSON.stringify({ id, table: "seasons" }),
       cache: "no-store",
     }
   );
@@ -28,11 +28,13 @@ export async function generateMetadata({
   params: { id: string } | Promise<{ id: string }>;
 }) {
   const resolvedParams = await params;
-  const meet = await getMeet(resolvedParams.id);
+  const season = await getSeason(resolvedParams.id);
 
   return {
-    title: `RLTF | ${meet?.name}` || "RLTF | Meet",
-    description: meet ? `View results for ${meet.name}` : "Meet details",
+    title: `RLTF | ${season?.name} Leaderboard` || "RLTF | Season Leaderboard",
+    description: season
+      ? `View leaderboard for ${season.name}`
+      : "Season leaderboard details",
   };
 }
 
@@ -43,5 +45,5 @@ export default async function Page({
 }) {
   const resolvedParams = await params;
 
-  return <MeetsClient id={resolvedParams.id} />;
+  return <SeasonLeaderboardClient id={resolvedParams.id} />;
 }

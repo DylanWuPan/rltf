@@ -64,7 +64,7 @@ export default function DashboardTemplate<T>({
           {/* Bubble navigation */}
 
           <div className="flex flex-wrap gap-2">
-            {items && subtitle && (
+            {items && !moreInfo && (
               <button
                 type="button"
                 onClick={() =>
