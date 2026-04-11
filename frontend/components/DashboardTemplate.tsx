@@ -177,7 +177,7 @@ export default function DashboardTemplate<T>({
                 deleting.close();
                 toast.success("Deleted successfully");
               }}
-              className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2 disabled:opacity-60 cursor-pointer"
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-xl transition-colors duration-200 flex items-center gap-2 disabled:opacity-60 cursor-pointer"
             >
               {`Delete '${title}'`}
             </Button>

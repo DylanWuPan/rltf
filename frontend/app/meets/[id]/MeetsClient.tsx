@@ -7,7 +7,7 @@ import type { Athlete } from "@/app/api/getAthletes/route";
 import DashboardTemplate from "@/components/DashboardTemplate";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
-import { confirmModal, loadingModal } from "@/components/ui/modal";
+import { confirmModal, loadingModal, editModal } from "@/components/ui/modal";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -171,8 +171,8 @@ export default function MeetEventsPage({ id }: { id: string }) {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to delete event");
-      fetchEvents();
       toast.success("Event deleted successfully!");
+      setEvents((prev: Event[]) => prev.filter((ev) => ev.id !== eventId));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error deleting event");
     }
@@ -210,27 +210,106 @@ export default function MeetEventsPage({ id }: { id: string }) {
                   isPublic
                     ? "grid-cols-[1.5fr_1fr_1fr_1fr]"
                     : "grid-cols-[2fr_1fr_1fr_2fr_auto]"
-                } gap-2 items-center text-sm text-gray-600 dark:text-gray-400 px-2 py-1 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 rounded transition`}
+                } gap-2 items-center text-sm text-gray-600 dark:text-gray-400 px-2 py-1 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 rounded-xl transition`}
               >
                 <div>
                   <Link
                     href={`/athletes/${event.athlete.id}`}
                     className="hover:font-medium"
                   >
-                    {event.athlete?.name}
+                    {event.athlete?.name} ({event.athlete.class})
                   </Link>
                 </div>
                 <div>{toOrdinal(event.place)}</div>
                 <div>{event.points}</div>
                 <div>{detailsDisplay(event.details)}</div>
                 {!isPublic && (
-                  <button
-                    className="text-red-500 hover:text-red-700 font-bold hover:cursor-pointer justify-self-end"
-                    onClick={() => handleDeleteEvent(event.id)}
-                    title="Delete event"
-                  >
-                    ✕
-                  </button>
+                  <div className="flex items-center gap-2 justify-self-end">
+                    <button
+                      className="text-blue-500 hover:text-blue-700 font-bold hover:cursor-pointer"
+                      title="Edit event"
+                      onClick={async () => {
+                        const result = await editModal({
+                          title: "Edit Event",
+                          fields: [
+                            {
+                              name: "place",
+                              label: "Place",
+                              type: "number",
+                              defaultValue: event.place ?? "",
+                            },
+                            {
+                              name: "points",
+                              label: "Points",
+                              type: "number",
+                              defaultValue: event.points ?? "",
+                            },
+                            {
+                              name: "details",
+                              label: "Details",
+                              type: "text",
+                              defaultValue: event.details ?? "",
+                            },
+                          ],
+                        });
+
+                        if (!result) return;
+
+                        try {
+                          const res = await fetch("/api/updateEntity", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              table: "events",
+                              data: {
+                                athlete: event.athlete.id,
+                                type: event.type,
+                                place: Number(result.place),
+                                points: Number(result.points),
+                                details: result.details,
+                                meet: event.meet.id,
+                              },
+                            }),
+                          });
+
+                          if (!res.ok) {
+                            toast.error("Failed to update event!");
+                            throw new Error("Failed to update event");
+                          }
+
+                          toast.success("Event updated!");
+                          setEvents((prev: Event[]) =>
+                            prev.map((ev) =>
+                              ev.id === event.id
+                                ? {
+                                    ...ev,
+                                    place: Number(result.place),
+                                    points: Number(result.points),
+                                    details: String(result.details),
+                                  }
+                                : ev
+                            )
+                          );
+                        } catch (err) {
+                          toast.error(
+                            err instanceof Error
+                              ? err.message
+                              : "Error updating event"
+                          );
+                        }
+                      }}
+                    >
+                      ✎
+                    </button>
+
+                    <button
+                      className="text-red-500 hover:text-red-700 font-bold hover:cursor-pointer"
+                      onClick={() => handleDeleteEvent(event.id)}
+                      title="Delete event"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
@@ -305,7 +384,7 @@ export default function MeetEventsPage({ id }: { id: string }) {
             setIsRelay(relay);
             if (relay) setRows([0, 1, 2, 3]);
           }}
-          className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">Select an event...</option>
           {eventTypes.map((et) => (
@@ -321,14 +400,14 @@ export default function MeetEventsPage({ id }: { id: string }) {
           {rows.map((idx) => (
             <div
               key={idx}
-              className="flex flex-row gap-2 items-end bg-white/50 dark:bg-gray-700/50 p-2 rounded-lg"
+              className="flex flex-row gap-2 items-end bg-white/50 dark:bg-gray-700/50 p-2 rounded-xl"
             >
               <label className="flex flex-col text-gray-700 dark:text-gray-200 font-medium w-65">
                 Athlete:
                 <select
                   name="athlete"
                   required
-                  className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select an athlete...</option>
                   {athletes.map((a) => (
@@ -413,7 +492,7 @@ export default function MeetEventsPage({ id }: { id: string }) {
                   prev.length ? prev[prev.length - 1] + 1 : 0,
                 ])
               }
-              className="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-900 dark:text-gray-100 px-3 py-2 rounded-lg transition-colors duration-200"
+              className="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-900 dark:text-gray-100 px-3 py-2 rounded-xl transition-colors duration-200"
             >
               + Add Another Athlete
             </button>
@@ -427,7 +506,7 @@ export default function MeetEventsPage({ id }: { id: string }) {
                   return [...prev, n, n + 1, n + 2, n + 3];
                 })
               }
-              className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition-colors duration-200"
+              className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-xl transition-colors duration-200"
             >
               + Add Another Relay Team
             </button>
@@ -437,7 +516,7 @@ export default function MeetEventsPage({ id }: { id: string }) {
 
       <button
         type="submit"
-        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
       >
         Add Event
       </button>
@@ -517,10 +596,10 @@ export default function MeetEventsPage({ id }: { id: string }) {
           {!selectedFile ? (
             <>
               <span className="text-gray-700 dark:text-gray-200 font-medium">
-                Click or drag a CSV file to upload
+                Click to upload a .csv file, or drag and drop.
               </span>
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                Only .csv files are accepted
+                Only .csv files are accepted.
               </span>
             </>
           ) : (
@@ -554,7 +633,7 @@ export default function MeetEventsPage({ id }: { id: string }) {
       <button
         type="submit"
         disabled={!selectedFile}
-        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 disabled:opacity-50 hover:cursor-pointer disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition-colors duration-200 disabled:opacity-50 hover:cursor-pointer disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {selectedFile ? `Import '${selectedFile.name}'` : "Import Events"}
       </button>

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 export type Athlete = {
   id: string;
   name: string;
+  class: string;
 };
 
 export async function GET(request: Request) {
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
   if (!season) {
     return NextResponse.json(
       { error: "Missing seasonId query parameter" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -25,14 +26,14 @@ export async function GET(request: Request) {
         Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
       },
       body: JSON.stringify({ season }),
-    }
+    },
   );
 
   if (!res.ok) {
     const text = await res.text();
     return NextResponse.json(
       { error: "Failed to fetch meets", details: text },
-      { status: 500 }
+      { status: 500 },
     );
   }
 

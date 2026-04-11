@@ -53,6 +53,7 @@ export default function AthletesClient({ id }: { id: string }) {
   const [athleteName, setAthleteName] = useState("");
   const [athleteSeasonId, setAthleteSeasonId] = useState("");
   const [athleteSeasonName, setAthleteSeasonName] = useState("");
+  const [athleteClass, setAthleteClass] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
@@ -87,6 +88,7 @@ export default function AthletesClient({ id }: { id: string }) {
       const data = await res.json();
       setAthleteName(data.name);
       setAthleteSeasonId(data.season);
+      setAthleteClass(data.class);
       if (data.season) fetchSeason(data.season);
     } catch (e) {
       toast.error((e as Error).message);
@@ -168,13 +170,13 @@ export default function AthletesClient({ id }: { id: string }) {
       {/* PR badges */}
       {prTypes.length > 0 && (
         <div className="flex flex-wrap gap-2 items-center justify-center w-full">
-          <div className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm text-gray-700 dark:text-gray-300">
+          <div className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm text-gray-700 dark:text-gray-300">
             <span className="font-bold">PRs: </span>
           </div>
           {prTypes.map((type) => (
             <div
               key={`pr-${type}`}
-              className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm text-gray-700 dark:text-gray-300"
+              className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm text-gray-700 dark:text-gray-300"
             >
               <span className="font-medium">{type}</span>
               <span className="text-gray-400 dark:text-gray-500 mx-1">·</span>
@@ -310,7 +312,7 @@ export default function AthletesClient({ id }: { id: string }) {
   return (
     <DashboardTemplate
       title={athleteName}
-      subtitle={athleteSeasonName}
+      subtitle={`Class ${athleteClass} · ${athleteSeasonName}`}
       loading={loading}
       moreInfo={content}
       onDelete={onDelete}

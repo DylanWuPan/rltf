@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export type Event = {
   id: string;
-  athlete: { id: string; name: string };
+  athlete: { id: string; name: string; class: string };
   type: string;
   place: number;
   points: number;
@@ -79,6 +79,5 @@ export async function GET(request: Request) {
       { status: 500 },
     );
   }
-
   return NextResponse.json(json.data);
 }

@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
           points,
           details,
           created_at,
-          athlete:athletes(id, name),
+          athlete:athletes(id, name, class),
           meet:meets!inner(
             id,
             name,
@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
           points,
           details,
           created_at,
-          athlete:athletes(id, name),
+          athlete:athletes(id, name, class),
           meet:meets!inner(
             id,
             name,
@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
           points,
           details,
           created_at,
-          athlete:athletes(id, name),
+          athlete:athletes(id, name, class),
           meet:meets(
             id,
             name,

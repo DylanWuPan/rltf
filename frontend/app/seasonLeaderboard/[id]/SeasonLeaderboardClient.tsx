@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
 type AthleteStats = {
   athleteId: string;
   athleteName: string;
+  athleteClass: string;
   totalPoints: number;
   numEvents: number;
   numMeets: number;
@@ -57,6 +58,7 @@ export default function SeasonLeaderboardClient({ id }: { id: string }) {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
   const [sortOption, setSortOption] = useState<string>("totalPoints");
+  const [classFilter, setClassFilter] = useState<string>("All");
 
   const [leaderboard, setLeaderboard] = useState<AthleteStats[]>([]);
   const athleteRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
@@ -99,14 +101,21 @@ export default function SeasonLeaderboardClient({ id }: { id: string }) {
 
   useEffect(() => {
     // Compute athlete stats
+    let filteredEvents = events;
+    if (classFilter !== "All") {
+      filteredEvents = filteredEvents.filter(
+        (ev) => ev.athlete?.class === classFilter
+      );
+    }
     const statsMap: Record<string, AthleteStats> = {};
-    events.forEach((ev) => {
+    filteredEvents.forEach((ev) => {
       if (!ev.athlete) return;
 
       if (!statsMap[ev.athlete.id]) {
         statsMap[ev.athlete.id] = {
           athleteId: ev.athlete.id,
           athleteName: ev.athlete.name,
+          athleteClass: ev.athlete.class,
           totalPoints: 0,
           numEvents: 0,
           numMeets: 0,
@@ -119,7 +128,7 @@ export default function SeasonLeaderboardClient({ id }: { id: string }) {
     });
     // Compute unique meets per athlete
     const athleteMeets: Record<string, Set<string>> = {};
-    events.forEach((ev) => {
+    filteredEvents.forEach((ev) => {
       if (!ev.athlete) return;
 
       if (!athleteMeets[ev.athlete.id]) {
@@ -153,7 +162,7 @@ export default function SeasonLeaderboardClient({ id }: { id: string }) {
       }
     });
     setLeaderboard(sorted);
-  }, [events, sortOption]);
+  }, [events, sortOption, classFilter]);
 
   useEffect(() => {
     if (!athleteRequest) return;
@@ -168,7 +177,7 @@ export default function SeasonLeaderboardClient({ id }: { id: string }) {
     }, 50); // 50ms delay ensures DOM is ready
 
     return () => clearTimeout(timer);
-  }, [athleteRequest, leaderboard, sortOption]);
+  }, [athleteRequest, leaderboard, sortOption, highlightAthlete]);
 
   // Collect unique seasons for filtering (unique by season.id, display season.name)
   const seasonMap: Record<string, string> = {};
@@ -182,27 +191,46 @@ export default function SeasonLeaderboardClient({ id }: { id: string }) {
     }
   });
 
+  const classSet = new Set<string>();
+  events.forEach((ev) => {
+    if (ev.athlete?.class) {
+      classSet.add(ev.athlete.class);
+    }
+  });
+  const classes = Array.from(classSet).sort();
+
   const leaderboardSection = (
     <div className="flex flex-col gap-4 w-full">
-      <div className="flex items-center justify-center gap-6 p-6 w-full">
-        <div className="flex items-center gap-2 bg-white dark:bg-gray-700 px-4 py-2 rounded-lg shadow-sm border dark:border-gray-600">
-          <label className="mr-2 font-semibold text-gray-700 dark:text-gray-200">
-            Sort:
+      {/* Filters + Sort Row */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full gap-3">
+        {/* Left: Class Filter */}
+        <div className="flex items-center gap-2 bg-white dark:bg-gray-700 px-4 py-2 rounded-xl shadow-sm border dark:border-gray-600 w-full md:flex-1">
+          <label className="font-medium text-gray-600 dark:text-gray-300 text-xs text-right uppercase whitespace-nowrap">
+            Filter By Class...
+          </label>
+          <select
+            value={classFilter}
+            onChange={(e) => setClassFilter(e.target.value)}
+            className="px-3 py-1.5 rounded-xl bg-transparent text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600 text-xs flex-1 w-full"
+          >
+            <option value="All">All</option>
+            {classes.map((cls) => (
+              <option key={cls} value={cls}>
+                {cls}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Right: Sort Selector */}
+        <div className="flex items-center gap-2 bg-white dark:bg-gray-700 px-4 py-2 rounded-xl shadow-sm border dark:border-gray-600 w-full md:w-auto">
+          <label className="font-medium text-gray-600 dark:text-gray-300 text-xs text-right uppercase whitespace-nowrap">
+            Sort by...
           </label>
           <select
             value={sortOption}
-            onChange={(e) => {
-              const value = e.target.value;
-              setSortOption(value);
-              if (athleteRequest) {
-                highlightAthlete(athleteRequest);
-                const el = athleteRefs.current[athleteRequest];
-                if (el) {
-                  el.scrollIntoView({ behavior: "smooth", block: "center" });
-                }
-              }
-            }}
-            className="px-2 py-1 rounded bg-transparent text-gray-800 dark:text-gray-100 border-transparent"
+            onChange={(e) => setSortOption(e.target.value)}
+            className="px-3 py-1.5 rounded-xl bg-transparent text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600 text-xs w-full md:w-auto"
           >
             <option value="totalPoints">Total Points</option>
             <option value="pointsPerMeet">Points Per Meet (PPM)</option>
@@ -241,20 +269,25 @@ export default function SeasonLeaderboardClient({ id }: { id: string }) {
               ref={(el) => {
                 athleteRefs.current[athlete.athleteId] = el;
               }}
-              className={`flex flex-col gap-2 px-5 py-4 rounded-xl shadow border bg-white dark:bg-gray-800 hover:shadow-md hover:ring-2 hover:ring-blue-400 transition cursor-pointer ${
+              className={`flex flex-col gap-2 px-3 py-3 sm:px-5 sm:py-4 rounded-xl shadow border bg-white dark:bg-gray-800 hover:shadow-md hover:ring-2 hover:ring-blue-400 transition cursor-pointer ${
                 highlightId === athlete.athleteId
                   ? "ring-4 ring-yellow-400 animate-pulse"
                   : ""
               } ${rankStyle}`}
             >
               {/* Line 1: Rank + Name */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="text-lg font-bold text-gray-700 dark:text-gray-200">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="text-base sm:text-lg font-bold text-gray-700 dark:text-gray-200">
                     #{rank}
                   </div>
-                  <div className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <div className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 flex flex-wrap items-center gap-1 sm:gap-2">
                     {athlete.athleteName}
+                    <span className="text-xs sm:text-sm font-normal text-gray-500 dark:text-gray-400">
+                      {classFilter === "All"
+                        ? `Class ${athlete.athleteClass}`
+                        : ""}
+                    </span>
                   </div>
                 </div>
 
@@ -269,7 +302,7 @@ export default function SeasonLeaderboardClient({ id }: { id: string }) {
               </div>
 
               {/* Line 2: Stats */}
-              <div className="flex flex-wrap gap-6 text-sm text-gray-700 dark:text-gray-300">
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
                 <span>
                   <span className="font-semibold">Points:</span>{" "}
                   {athlete.totalPoints}

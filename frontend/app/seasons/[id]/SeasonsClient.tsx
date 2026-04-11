@@ -6,7 +6,7 @@ import Link from "next/link";
 import DashboardTemplate from "@/components/DashboardTemplate";
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
-import { confirmModal, loadingModal } from "@/components/ui/modal";
+import { loadingModal } from "@/components/ui/modal";
 
 export default function SeasonsClient({ id }: { id: string }) {
   const [isPublic, setIsPublic] = useState(false);
@@ -55,7 +55,11 @@ export default function SeasonsClient({ id }: { id: string }) {
 
   const [roster, setRoster] = useState<Athlete[]>([]);
   const [rosterLoading, setRosterLoading] = useState(false);
-  const [newAthleteNames, setNewAthleteNames] = useState("");
+  const [athleteInputs, setAthleteInputs] = useState([
+    { firstName: "", lastName: "", class: "" },
+  ]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   const fetchMeets = useCallback(async () => {
     setLoading(true);
@@ -87,12 +91,16 @@ export default function SeasonsClient({ id }: { id: string }) {
 
   const addAthletes = useCallback(async () => {
     const adding = loadingModal("Adding athletes...");
-    const names = (newAthleteNames || "")
-      .split(/\r?\n/)
-      .map((n) => n.trim())
-      .filter((n) => n.length > 0);
 
-    if (names.length === 0) {
+    const validAthletes = athleteInputs
+      .map((a) => ({
+        firstName: a.firstName.trim(),
+        lastName: a.lastName.trim(),
+        class: a.class.trim(),
+      }))
+      .filter((a) => a.firstName && a.lastName && a.class);
+
+    if (validAthletes.length === 0) {
       adding.close();
       return;
     }
@@ -101,14 +109,19 @@ export default function SeasonsClient({ id }: { id: string }) {
       const res = await fetch("/api/addAthletes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ names, season: seasonId }),
+        body: JSON.stringify({
+          names: validAthletes.map((a) => `${a.firstName} ${a.lastName}`),
+          classes: validAthletes.map((a) => a.class),
+          season: seasonId,
+        }),
       });
 
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data?.error || "Failed to add athlete");
       }
-      setNewAthleteNames("");
+
+      setAthleteInputs([{ firstName: "", lastName: "", class: "" }]);
       fetchRoster();
       toast.success("Athletes added successfully!");
     } catch (e) {
@@ -116,7 +129,7 @@ export default function SeasonsClient({ id }: { id: string }) {
     }
 
     adding.close();
-  }, [newAthleteNames, seasonId, fetchRoster]);
+  }, [athleteInputs, seasonId, fetchRoster]);
 
   useEffect(() => {
     fetchUser();
@@ -190,7 +203,7 @@ export default function SeasonsClient({ id }: { id: string }) {
           name="name"
           type="text"
           required
-          className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </label>
       <label className="flex flex-col text-gray-700 dark:text-gray-200 font-medium">
@@ -199,7 +212,7 @@ export default function SeasonsClient({ id }: { id: string }) {
           name="date"
           type="date"
           required
-          className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </label>
       <label className="flex flex-col text-gray-700 dark:text-gray-200 font-medium">
@@ -208,7 +221,7 @@ export default function SeasonsClient({ id }: { id: string }) {
           name="location"
           type="text"
           required
-          className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </label>
       <label className="flex flex-col text-gray-700 dark:text-gray-200 font-medium">
@@ -217,12 +230,12 @@ export default function SeasonsClient({ id }: { id: string }) {
           name="num_teams"
           type="number"
           required
-          className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </label>
       <button
         type="submit"
-        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
       >
         Add Meet
       </button>
@@ -231,6 +244,201 @@ export default function SeasonsClient({ id }: { id: string }) {
 
   const rosterSection = (
     <div id="roster-section" className="w-full flex flex-col gap-4">
+      {/* Add athlete */}
+      {isPublic ? null : (
+        <div className="w-full max-w-3xl mx-auto flex flex-col gap-4">
+          <form
+            onSubmit={async (e: React.FormEvent<HTMLFormElement>) => {
+              e.preventDefault();
+              if (!selectedFile) {
+                toast.error("Please select a CSV file to import.");
+                return;
+              }
+
+              const importing = loadingModal("Importing athletes...");
+
+              const formData = new FormData();
+              formData.append("csvFile", selectedFile);
+              formData.append("season", seasonId);
+
+              try {
+                const res = await fetch("/api/importAthletes", {
+                  method: "POST",
+                  body: formData,
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                  toast.success("Athletes imported successfully!");
+                  fetchRoster();
+                  setSelectedFile(null);
+                } else {
+                  toast.error(data.error || "Failed to import athletes.");
+                }
+              } catch {
+                toast.error("Error importing CSV file.");
+                setSelectedFile(null);
+              } finally {
+                importing.close();
+              }
+            }}
+            className="flex flex-col gap-4 bg-gray-100 dark:bg-gray-800 p-6 rounded-xl shadow"
+          >
+            <label
+              htmlFor="csvFile"
+              className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-6 cursor-pointer transition-colors duration-200 ${
+                selectedFile
+                  ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                  : dragOver
+                  ? "border-blue-500 bg-gray-50 dark:bg-gray-700"
+                  : "border-gray-400 dark:border-gray-600"
+              }`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOver(false);
+                if (e.dataTransfer.files[0])
+                  setSelectedFile(e.dataTransfer.files[0]);
+              }}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-12 w-12 text-gray-400 dark:text-gray-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12v8m0-8l3 3m-3-3l-3 3m6-6V4a2 2 0 00-2-2H8a2 2 0 00-2 2v4"
+                  />
+                </svg>
+                {!selectedFile ? (
+                  <>
+                    <span className="text-gray-700 dark:text-gray-200 font-medium">
+                      Click to upload a .csv file, or drag and drop.
+                    </span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      Only .csv files are accepted.
+                    </span>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-gray-900 dark:text-gray-100 font-medium">
+                      {selectedFile.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFile(null)}
+                      className="text-red-500 hover:text-red-700 text-sm"
+                    >
+                      Remove file
+                    </button>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  id="csvFile"
+                  name="csvFile"
+                  accept=".csv"
+                  className="hidden"
+                  key={selectedFile ? selectedFile.name : "empty"}
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) setSelectedFile(e.target.files[0]);
+                  }}
+                />
+              </div>
+            </label>
+
+            <button
+              type="submit"
+              disabled={!selectedFile}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition-colors duration-200 disabled:opacity-50 hover:cursor-pointer disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {selectedFile
+                ? `Import '${selectedFile.name}'`
+                : "Import Athletes"}
+            </button>
+          </form>
+          {athleteInputs.map((athlete, index) => (
+            <div
+              key={index}
+              className="flex gap-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-xl shadow"
+            >
+              <input
+                type="text"
+                placeholder="First Name"
+                value={athlete.firstName}
+                onChange={(e) => {
+                  const updated = [...athleteInputs];
+                  updated[index].firstName = e.target.value;
+                  setAthleteInputs(updated);
+                }}
+                className="flex-1 px-2 py-1 rounded-xl bg-white dark:bg-gray-700"
+              />
+              <input
+                type="text"
+                placeholder="Last Name"
+                value={athlete.lastName}
+                onChange={(e) => {
+                  const updated = [...athleteInputs];
+                  updated[index].lastName = e.target.value;
+                  setAthleteInputs(updated);
+                }}
+                className="flex-1 px-2 py-1 rounded-xl bg-white dark:bg-gray-700"
+              />
+              <input
+                type="text"
+                placeholder="Class"
+                value={athlete.class}
+                onChange={(e) => {
+                  const updated = [...athleteInputs];
+                  updated[index].class = e.target.value;
+                  setAthleteInputs(updated);
+                }}
+                className="w-32 px-2 py-1 rounded-xl bg-white dark:bg-gray-700"
+              />
+            </div>
+          ))}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setAthleteInputs([
+                  ...athleteInputs,
+                  { firstName: "", lastName: "", class: "" },
+                ])
+              }
+              className="bg-gray-300 dark:bg-gray-700 px-3 py-1 rounded-xl shadow cursor-pointer shadow hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+            >
+              + Add Another
+            </button>
+
+            <button
+              onClick={addAthletes}
+              disabled={
+                !athleteInputs.some(
+                  (a) =>
+                    a.firstName.trim() !== "" &&
+                    a.lastName.trim() !== "" &&
+                    a.class.trim() !== ""
+                )
+              }
+              className="ml-auto bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl cursor-pointer shadow hover:shadow-lg transition-shadow duration-200 cursor-pointer disabled:opacity-50  disabled:cursor-not-allowed"
+            >
+              Save Athletes
+            </button>
+          </div>
+        </div>
+      )}
       {rosterLoading ? (
         <p className="text-center text-gray-600 dark:text-gray-400">
           Loading roster...
@@ -252,6 +460,7 @@ export default function SeasonsClient({ id }: { id: string }) {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-500">
                   {athlete.name}
+                  {athlete.class ? ` (${athlete.class})` : ""}
                 </h3>
               </div>
               <div className="text-blue-500 group-hover:scale-110 transition-transform duration-200">
@@ -259,27 +468,6 @@ export default function SeasonsClient({ id }: { id: string }) {
               </div>
             </Link>
           ))}
-        </div>
-      )}
-      {/* Add athlete */}
-      {isPublic ? null : (
-        <div className="w-full max-w-3xl mx-auto">
-          <div className="relative flex items-center gap-3 p-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow duration-200">
-            <textarea
-              value={newAthleteNames}
-              onChange={(e) => setNewAthleteNames(e.target.value)}
-              placeholder="Paste athlete names (one per line)..."
-              rows={3}
-              className="w-full bg-transparent outline-none text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 resize-none"
-            />
-            <button
-              type="submit"
-              className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap shrink-0"
-              onClick={addAthletes}
-            >
-              Add Athletes
-            </button>
-          </div>
         </div>
       )}
     </div>

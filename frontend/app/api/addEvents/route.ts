@@ -4,7 +4,7 @@ import { calculateScores } from "./scoring";
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-type Event = {
+export type Event = {
   athlete: string;
   type: string;
   place: number;
@@ -30,8 +30,11 @@ export async function POST(req: Request) {
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       return NextResponse.json(
-        { error: "Server misconfiguration: missing Supabase environment variables" },
-        { status: 503 }
+        {
+          error:
+            "Server misconfiguration: missing Supabase environment variables",
+        },
+        { status: 503 },
       );
     }
 
@@ -47,7 +50,7 @@ export async function POST(req: Request) {
     ) {
       return NextResponse.json(
         { error: "Invalid request body" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -75,7 +78,7 @@ export async function POST(req: Request) {
       const errorText = await res.text();
       return NextResponse.json(
         { error: `Failed to add event: ${errorText}` },
-        { status: res.status }
+        { status: res.status },
       );
     }
 
@@ -83,7 +86,7 @@ export async function POST(req: Request) {
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : String(err) },
-      { status: 503 }
+      { status: 503 },
     );
   }
 }

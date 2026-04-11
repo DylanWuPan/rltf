@@ -5,37 +5,49 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export async function POST(req: Request) {
   try {
-    const { names, season } = await req.json();
+    const { names, classes, season } = await req.json();
 
-    if (!names || !Array.isArray(names) || names.length === 0 || !season) {
+    if (
+      !names || !Array.isArray(names) || !classes || !Array.isArray(classes) ||
+      names.length === 0 || !season
+    ) {
       return NextResponse.json(
-        { error: "Missing required fields: names (array) and season" },
-        { status: 400 }
+        {
+          error:
+            "Missing required fields: names (array), class (array), and season",
+        },
+        { status: 400 },
       );
     }
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       return NextResponse.json(
-        { error: "Server misconfiguration: missing Supabase environment variables" },
-        { status: 503 }
+        {
+          error:
+            "Server misconfiguration: missing Supabase environment variables",
+        },
+        { status: 503 },
       );
     }
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/addAthletesToSeason`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
+    const res = await fetch(
+      `${SUPABASE_URL}/functions/v1/addAthletesToSeason`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+        },
+        body: JSON.stringify({ names, classes, season }),
       },
-      body: JSON.stringify({ names, season }),
-    });
+    );
 
     if (!res.ok) {
       const errorText = await res.text();
       return NextResponse.json(
         { error: `Failed to add athletes: ${errorText}` },
-        { status: res.status }
+        { status: res.status },
       );
     }
 
@@ -45,7 +57,7 @@ export async function POST(req: Request) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
       { error: `Internal server error: ${message}` },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
