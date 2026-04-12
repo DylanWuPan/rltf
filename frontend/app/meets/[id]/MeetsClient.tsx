@@ -650,10 +650,10 @@ export default function MeetEventsPage({ id }: { id: string }) {
             Team Stats
           </span>
           <span className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-            {totalEvents} Events
+            {Math.round(totalPoints)} pts
           </span>
           <span className="text-sm text-gray-500 dark:text-gray-400">
-            {Math.round(totalPoints)} pts
+            {totalEvents} Events
           </span>
         </div>
       )}

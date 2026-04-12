@@ -3,7 +3,7 @@ import z from "https://esm.sh/zod@3.23.2";
 
 const BulkAthleteSchema = z.object({
   names: z.array(z.string().min(1)),
-  classes: z.array(z.string().min(1)),
+  classes: z.array(z.string().min(1)).optional(),
   season: z.string().min(1),
 });
 
@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     const { names, classes, season } = parsedBody.data;
     console.log(parsedBody.data);
 
-    if (names.length !== classes.length) {
+    if (classes && (names.length !== classes.length)) {
       return new Response(
         JSON.stringify({
           error: "Names and classes arrays must be the same length",
@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
 
     const athletesToInsert = names.map((name, i) => ({
       name: name.trim(),
-      class: classes[i].trim(),
+      class: classes ? classes[i].trim() : null,
       season,
     }));
 
@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
       .from("athletes")
       .upsert(
         athletesToInsert,
-        { onConflict: "name,season" },
+        { onConflict: "name,season", ignoreDuplicates: true },
       )
       .select();
 
