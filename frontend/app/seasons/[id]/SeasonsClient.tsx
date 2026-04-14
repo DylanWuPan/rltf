@@ -326,8 +326,9 @@ export default function SeasonsClient({ id }: { id: string }) {
                     <span className="text-gray-700 dark:text-gray-200 font-medium">
                       Click to upload a .csv file, or drag and drop.
                     </span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                      Only .csv files are accepted.
+                    <span className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                      Column names should be &quot;First Name&quot;, &quot;Last
+                      Name&quot;, and &quot;Class&quot;.
                     </span>
                   </>
                 ) : (
