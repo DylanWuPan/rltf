@@ -27,8 +27,8 @@ const EVENT_NAME_MAP: Record<string, string> = {
   "400H": "400m Hurdles",
   "3000": "3000 Meters",
   "3200": "3200 Meters",
-  "4X1": "4x100 Relay",
-  "4X4": "4x400 Relay",
+  "4X1": "4x100m Relay",
+  "4X4": "4x400m Relay",
   "HJ": "High Jump",
   "PV": "Pole Vault",
   "LJ": "Long Jump",
@@ -67,7 +67,91 @@ function isValidResult(result: string): boolean {
   );
 }
 
-// ─── Parser ───────────────────────────────────────────────────────────────────
+function isFieldEvent(type: string): boolean {
+  return /(HJ|PV|LJ|TJ|SP|DT|JT|HT|WT)/i.test(type);
+}
+
+function inchesToFeetInches(inches: number): string {
+  const feet = Math.floor(inches / 12);
+  const remaining = inches % 12;
+  const frac = remaining % 1;
+
+  const wholeInches = Math.floor(remaining);
+  const decimal = Math.round(frac * 8); // approximate 1/8ths
+
+  let inchStr = `${wholeInches}`;
+  if (decimal > 0) inchStr += ` ${decimal}/8`;
+
+  return `${feet}' ${inchStr}"`;
+}
+
+function formatTrackTime(value: string): string {
+  const num = parseFloat(value);
+  if (isNaN(num)) return value;
+
+  const minutes = Math.floor(num / 60);
+  const seconds = num % 60;
+
+  if (minutes > 0) {
+    // e.g. 1:30.4 — trim trailing zeros but keep at least one decimal
+    const secStr = seconds.toFixed(3).replace(/0+$/, "").replace(/\.$/, ".0");
+    return `${minutes}:${secStr.padStart(4, "0")}`;
+  }
+
+  // e.g. 10.45 — same trimming
+  return seconds.toFixed(3).replace(/0+$/, "").replace(/\.$/, ".0");
+}
+
+function parseFeetInches(value: string): number | null {
+  // Handles "12-06.00", "12-6", "12-06", "5-11.50" (feet-inches.hundredths)
+  const match = value.match(/^(\d+)-(\d+(?:\.\d+)?)$/);
+  if (!match) return null;
+  const feet = parseInt(match[1], 10);
+  const inches = parseFloat(match[2]);
+  return feet * 12 + inches;
+}
+
+function normalizeDetails(value: string, eventType: string): string {
+  if (!value) return "";
+  const cleaned = value.trim().replace(/\s+/g, " ");
+
+  if (isFieldEvent(eventType)) {
+    // Try feet-inches string first (comma-delimited format: "12-06.00")
+    const fromFeetInches = parseFeetInches(cleaned);
+    if (fromFeetInches !== null) {
+      return inchesToFeetInches(fromFeetInches);
+    }
+
+    // Fall back: raw inches number (Hy-Tek format: "150" = 12'6")
+    const num = parseFloat(cleaned);
+    if (!isNaN(num)) {
+      return inchesToFeetInches(num);
+    }
+
+    return cleaned;
+  }
+
+  // Track: any valid number is a time in seconds
+  const num = parseFloat(cleaned);
+  if (!isNaN(num)) {
+    return formatTrackTime(cleaned);
+  }
+
+  return cleaned;
+}
+
+// ─── Format detection ─────────────────────────────────────────────────────────
+
+/**
+ * Returns true if the file uses the Hy-Tek semicolon format (reslt*.csv).
+ * The tell-tale sign is that individual result rows start with "E;" and relay
+ * rows start with "R;".
+ */
+function isHytekFormat(raw: string): boolean {
+  return /^[ER];/m.test(raw);
+}
+
+// ─── Hy-Tek parser ────────────────────────────────────────────────────────────
 
 /**
  * Individual result rows (record type "E") layout:
@@ -114,10 +198,7 @@ function isValidResult(result: string): boolean {
  * relay block; Hy-Tek 6.x leaves it empty and may include a DOB instead.
  * Both variants are 9 columns wide, so the block stride is the same.
  */
-export function parseResults(csvBuffer: Buffer): Event[] {
-  const raw = csvBuffer.toString("utf-8");
-  const lines = raw.split(/\r?\n/).filter(Boolean);
-
+function parseHytek(lines: string[]): Event[] {
   const results: Event[] = [];
 
   for (const line of lines) {
@@ -133,10 +214,9 @@ export function parseResults(csvBuffer: Buffer): Event[] {
       // School code is at col [12] for relay rows
       if (!SCHOOL_CODES.has(cols[12]?.trim())) continue;
 
-      const details = cols[10]?.trim() ?? "";
-      if (!isValidResult(details)) continue;
-
       const type = resolveEventName(cols[4]?.trim() ?? "", true);
+      const details = normalizeDetails(cols[10] ?? "", type);
+
       const rawPlace = cols[13]?.trim() ?? "";
       const place: number | null = rawPlace && rawPlace !== "0"
         ? parseInt(rawPlace, 10)
@@ -163,10 +243,10 @@ export function parseResults(csvBuffer: Buffer): Event[] {
       // School code is at col [27] for individual rows
       if (!SCHOOL_CODES.has(cols[27]?.trim())) continue;
 
-      const details = cols[10]?.trim() ?? "";
+      const type = resolveEventName(cols[4]?.trim() ?? "");
+      const details = normalizeDetails(cols[10] ?? "", type);
       if (!isValidResult(details)) continue;
 
-      const type = resolveEventName(cols[4]?.trim() ?? "");
       const rawPlace = cols[13]?.trim() ?? "";
       const place: number | null = rawPlace && rawPlace !== "0"
         ? parseInt(rawPlace, 10)
@@ -182,4 +262,162 @@ export function parseResults(csvBuffer: Buffer): Event[] {
   }
 
   return results.filter((e) => e.place !== null);
+}
+
+// ─── New comma-delimited parser ───────────────────────────────────────────────
+
+/**
+ * New comma-delimited format (e.g. 4_11_26.csv).
+ *
+ * Individual result rows layout:
+ *
+ * [0]  athlete ID
+ * [1]  (empty)
+ * [2]  school name  – e.g. "Roxbury Latin"
+ * [3]  school code  – e.g. "ROLA"
+ * [4]  first name
+ * [5]  last name
+ * [6]  gender       – "M" | "F"
+ * [7]  grade
+ * [8]  DOB or empty
+ * [9]  event code   – e.g. "100", "110h", "HJ"
+ * [10] event name   – human-readable, e.g. "100 Meters", "110m Hurdles"
+ * [11] (unused)
+ * [12–14] (empty)
+ * [15] result       – time or distance string
+ * [16] (unused)
+ * [17] (unused)
+ * [18] overall place
+ * [19] points
+ * [20] heat number
+ * [21] heat place
+ * [22] round        – "F" (final) | "P" (prelim)
+ *
+ * Relay rows layout:
+ *
+ * [0]  (empty)
+ * [1]  (empty)
+ * [2]  school name
+ * [3]  school code
+ * [4]  (empty – no individual first name)
+ * [5]  (empty)
+ * [6]  gender
+ * [7]  (empty)
+ * [8]  (empty)
+ * [9]  event code   – e.g. "4x100", "4x400"
+ * [10] event name   – e.g. "4x100 Relay", "4x400 Relay"
+ * [11] (unused)
+ * [12–14] (empty)
+ * [15] team time
+ * [16] (unused)
+ * [17] (unused)
+ * [18] overall place – numeric, or "X" for exhibition
+ * [19] points
+ * [20] heat number
+ * [21] heat place
+ * [22] round        – "F"
+ * [23] (empty)
+ * [24] (empty)
+ * [25] (empty)
+ * [26] team letter  – "A", "B", "C", …
+ * [26] athlete 1 first name
+ * [27] athlete 1 last name
+ * [28] athlete 1 ID
+ * [29] (empty)
+ * [30] athlete 2 first name
+ * … repeating in groups of 4: [firstName, lastName, athleteID, empty]
+ *
+ * Detection: relay rows have an empty athlete-ID field ([0]) AND the event
+ * code ([9]) starts with "4x".
+ */
+function parseCommaDelimited(lines: string[]): Event[] {
+  const results: Event[] = [];
+
+  for (const line of lines) {
+    const cols = line.split(",");
+
+    // Must belong to our school
+    if (!SCHOOL_CODES.has(cols[3]?.trim())) continue;
+
+    // Only finals
+    const round = cols[22]?.trim();
+    if (round !== "F") continue;
+
+    const eventCode = cols[9]?.trim() ?? "";
+    const isRelay = eventCode.toLowerCase().startsWith("4x");
+
+    if (isRelay) {
+      // Normalize relay name first, then use it for normalizeDetails
+      const relayKey = eventCode.replace(/^4x/i, "").toUpperCase();
+      let type = cols[10]?.trim() ?? eventCode;
+      if (relayKey === "100") type = "4x100m Relay";
+      if (relayKey === "400") type = "4x400m Relay";
+
+      const details = normalizeDetails(cols[15] ?? "", type); // ← type now defined
+      if (!isValidResult(details)) continue;
+      // ... rest unchanged
+
+      // "X" means exhibition – no scored place
+      const rawPlace = cols[18]?.trim() ?? "";
+      const place: number | null =
+        rawPlace && rawPlace !== "0" && rawPlace !== "X"
+          ? parseInt(rawPlace, 10)
+          : null;
+
+      if (isRelay) {
+        if (relayKey === "100") type = "4x100m Relay";
+        if (relayKey === "400") type = "4x400m Relay";
+      }
+      const totalPoints = parseFloat(cols[19]?.trim() ?? "0") || 0;
+
+      // Athlete blocks start at col 26 (0-based), stride 4: [firstName, lastName, ID, empty]
+      const athletes: string[] = [];
+      for (let i = 26; i + 1 < cols.length; i += 4) {
+        const first = cols[i]?.trim();
+        const last = cols[i + 1]?.trim();
+        if (!first && !last) break;
+        athletes.push(`${first} ${last}`.trim());
+      }
+
+      const teamSize = athletes.length || 4;
+      const pointsEach = totalPoints / teamSize;
+
+      for (const athlete of athletes) {
+        results.push({ type, athlete, place, details, points: pointsEach });
+      }
+    } else {
+      const type = cols[10]?.trim() ?? eventCode;
+      const details = normalizeDetails(cols[15] ?? "", type);
+      if (!isValidResult(details)) continue;
+
+      const rawPlace = cols[18]?.trim() ?? "";
+      const place: number | null =
+        rawPlace && rawPlace !== "0" && rawPlace !== "X"
+          ? parseInt(rawPlace, 10)
+          : null;
+
+      // Event name is already human-readable in col [10]
+      const points = parseFloat(cols[19]?.trim() ?? "0") || 0;
+
+      const firstName = cols[4]?.trim() ?? "";
+      const lastName = cols[5]?.trim() ?? "";
+      const athlete = `${firstName} ${lastName}`.trim();
+
+      results.push({ type, athlete, place, details, points });
+    }
+  }
+
+  return results.filter((e) => e.place !== null);
+}
+
+// ─── Public entry point ───────────────────────────────────────────────────────
+
+export function parseResults(csvBuffer: Buffer): Event[] {
+  const raw = csvBuffer.toString("utf-8");
+  const lines = raw.split(/\r?\n/).filter(Boolean);
+
+  if (isHytekFormat(raw)) {
+    return parseHytek(lines);
+  }
+  return parseCommaDelimited(lines);
 }

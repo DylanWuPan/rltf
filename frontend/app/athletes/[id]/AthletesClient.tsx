@@ -140,6 +140,19 @@ export default function AthletesClient({ id }: { id: string }) {
     (type) => events.some((e) => e.type === type && e.details) && eventPRs[type]
   );
 
+  const formatDate = (dateStr: string) => {
+    const [year, month, day] = dateStr.split("T")[0].split("-");
+    return new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day)
+    ).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   const content = (
@@ -214,7 +227,7 @@ export default function AthletesClient({ id }: { id: string }) {
           });
           const meetName = meetEvents[0]?.meet?.name ?? "Unknown Meet";
           const meetDate = meetEvents[0]?.meet?.date
-            ? new Date(meetEvents[0].meet.date).toLocaleDateString()
+            ? formatDate(meetEvents[0].meet.date)
             : "";
 
           return (
@@ -312,7 +325,7 @@ export default function AthletesClient({ id }: { id: string }) {
   return (
     <DashboardTemplate
       title={athleteName}
-      subtitle={`Class ${athleteClass} · ${athleteSeasonName}`}
+      subtitle={`Class ${athleteClass ?? "Unknown"} · ${athleteSeasonName}`}
       loading={loading}
       moreInfo={content}
       onDelete={onDelete}

@@ -6,7 +6,7 @@ import Link from "next/link";
 import DashboardTemplate from "@/components/DashboardTemplate";
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
-import { loadingModal } from "@/components/ui/modal";
+import { loadingModal, confirmModal } from "@/components/ui/modal";
 
 export default function SeasonsClient({ id }: { id: string }) {
   const [isPublic, setIsPublic] = useState(false);
@@ -67,6 +67,7 @@ export default function SeasonsClient({ id }: { id: string }) {
       const response = await fetch(`/api/getMeets?season=${seasonId}`);
       if (!response.ok) throw new Error("Failed to fetch meets");
       const data = await response.json();
+      // console.log(data);
       setMeets(data);
     } catch (e) {
       toast.error("Error fetching meets: " + (e as Error).message);
@@ -139,6 +140,19 @@ export default function SeasonsClient({ id }: { id: string }) {
     checkCredentials();
   }, [fetchUser, fetchMeets, fetchRoster, fetchSeason]);
 
+  const formatDate = (dateStr: string) => {
+    const [year, month, day] = dateStr.split("T")[0].split("-");
+    return new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day)
+    ).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   const renderItem = (meet: Meet) => (
     <Link
       key={meet.id}
@@ -152,8 +166,7 @@ export default function SeasonsClient({ id }: { id: string }) {
           {meet.name}
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          {new Date(meet.date).toLocaleDateString()} | @ {meet.location} |{" "}
-          {meet.num_teams} Teams
+          {formatDate(meet.date)} | @ {meet.location} | {meet.num_teams} Teams
         </p>
       </div>
       <div className="text-blue-500 group-hover:scale-110 transition-transform duration-200">
@@ -461,7 +474,11 @@ export default function SeasonsClient({ id }: { id: string }) {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-500">
                   {athlete.name}
-                  {athlete.class ? ` (${athlete.class})` : ""}
+                  {athlete.class && (
+                    <span className="ml-1 text-sm text-gray-500">
+                      ({athlete.class})
+                    </span>
+                  )}{" "}
                 </h3>
               </div>
               <div className="text-blue-500 group-hover:scale-110 transition-transform duration-200">
@@ -470,6 +487,43 @@ export default function SeasonsClient({ id }: { id: string }) {
             </Link>
           ))}
         </div>
+      )}
+      {roster.length > 0 ? (
+        <button
+          onClick={async () => {
+            const confirmed = await confirmModal("Delete roster?");
+            if (!confirmed) return;
+
+            const deleting = loadingModal("Deleting roster...");
+
+            try {
+              const res = await fetch(
+                `/api/deleteRoster?seasonId=${seasonId}`,
+                {
+                  method: "DELETE",
+                }
+              );
+
+              const data = await res.json();
+
+              if (!res.ok) {
+                throw new Error(data?.error || "Failed to delete roster");
+              }
+
+              toast.success("Roster deleted successfully!");
+              setRoster([]);
+            } catch (e) {
+              toast.error("Error deleting roster: " + (e as Error).message);
+            } finally {
+              deleting.close();
+            }
+          }}
+          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl transition-colors duration-200 cursor-pointer disabled:opacity-50"
+        >
+          Delete Roster
+        </button>
+      ) : (
+        ""
       )}
     </div>
   );
@@ -520,9 +574,7 @@ export default function SeasonsClient({ id }: { id: string }) {
         title={seasonName ?? "Season"}
         subtitle={
           seasonStart && seasonEnd
-            ? `${new Date(seasonStart).toLocaleDateString()} -> ${new Date(
-                seasonEnd
-              ).toLocaleDateString()}`
+            ? `${formatDate(seasonStart)} -> ${formatDate(seasonEnd)}`
             : undefined
         }
         subject="Meets"

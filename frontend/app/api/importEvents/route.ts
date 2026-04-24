@@ -59,14 +59,19 @@ export async function POST(request: Request) {
     }
 
     // Add any new athletes from CSV
-    const newAthletes: string[] = [];
+    const newAthletesSet = new Set<string>();
+
     for (const e of events) {
       const normalizedEventAthlete = e.athlete.replace("\t", " ").trim();
       if (!athleteSet.has(normalizedEventAthlete)) {
-        newAthletes.push(normalizedEventAthlete);
+        newAthletesSet.add(normalizedEventAthlete);
       }
     }
+
+    const newAthletes = Array.from(newAthletesSet);
+
     if (newAthletes.length > 0) {
+      console.log(newAthletes.length, newAthletes);
       const addRes = await fetch(
         `${SUPABASE_URL}/functions/v1/addAthletesToSeason`,
         {
@@ -100,7 +105,7 @@ export async function POST(request: Request) {
       const addedAthletes = addedAthletesRes.athletes ??
         addedAthletesRes.added ?? addedAthletesRes;
 
-      console.log("Added athletes response:", addedAthletes);
+      // console.log("Added athletes response:", addedAthletes);
 
       if (!Array.isArray(addedAthletes)) {
         console.error(

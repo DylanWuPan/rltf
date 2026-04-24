@@ -217,7 +217,12 @@ export default function MeetEventsPage({ id }: { id: string }) {
                     href={`/athletes/${event.athlete.id}`}
                     className="hover:font-medium"
                   >
-                    {event.athlete?.name} ({event.athlete.class})
+                    {event.athlete?.name}
+                    {event.athlete?.class && (
+                      <span className="ml-1 text-xs text-gray-500">
+                        ({event.athlete.class})
+                      </span>
+                    )}{" "}
                   </Link>
                 </div>
                 <div>{toOrdinal(event.place)}</div>
@@ -645,7 +650,7 @@ export default function MeetEventsPage({ id }: { id: string }) {
   const moreInfo = (
     <div className="flex gap-3 w-full">
       {totalPoints > 0 && (
-        <div className="flex flex-col items-center gap-1 flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-4">
+        <div className="flex flex-col items-center gap-1 flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-4 shadow">
           <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
             Team Stats
           </span>
@@ -658,7 +663,7 @@ export default function MeetEventsPage({ id }: { id: string }) {
         </div>
       )}
       {topEvent && (
-        <div className="flex flex-col items-center gap-1 flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-4">
+        <div className="flex flex-col items-center gap-1 flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-4 shadow">
           <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
             Top Event
           </span>
@@ -671,7 +676,7 @@ export default function MeetEventsPage({ id }: { id: string }) {
         </div>
       )}
       {topAthlete && (
-        <div className="flex flex-col items-center gap-1 flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-4">
+        <div className="flex flex-col items-center gap-1 flex-[2] bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-4 shadow">
           <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
             Top Athlete
           </span>
@@ -691,12 +696,25 @@ export default function MeetEventsPage({ id }: { id: string }) {
 
   // ─── Render ───────────────────────────────────────────────────────────────────
 
+  const formatDate = (dateStr: string) => {
+    const [year, month, day] = dateStr.split("T")[0].split("-");
+    return new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day)
+    ).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   return (
     <DashboardTemplate
       title={meetName || "Meet"}
-      subtitle={`${
-        meetDate ? new Date(meetDate).toLocaleDateString() : ""
-      } | @ ${meetLocation || ""} | ${meetNumTeams} Teams`}
+      subtitle={`${meetDate ? formatDate(meetDate) : ""} | @ ${
+        meetLocation || ""
+      } | ${meetNumTeams} Teams`}
       subject="Events"
       items={Object.entries(groupedEventsSorted)}
       renderItem={(entry: [string, Event[]]) =>

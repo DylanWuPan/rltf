@@ -67,6 +67,19 @@ export default function HomePage() {
     }
   }, [user, fetchSeasons]);
 
+  const formatDate = (dateStr: string) => {
+    const [year, month, day] = dateStr.split("T")[0].split("-");
+    return new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day)
+    ).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   const renderItem = (season: Season) => (
     <Link
       key={season.id}
@@ -80,8 +93,8 @@ export default function HomePage() {
           {season.name}
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          {new Date(season.start).toLocaleDateString()} -{"> "}
-          {new Date(season.end).toLocaleDateString()}
+          {formatDate(season.start)} -{"> "}
+          {formatDate(season.end)}
         </p>
       </div>
       <div className="text-blue-500 group-hover:scale-110 transition-transform duration-200">

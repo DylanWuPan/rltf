@@ -29,6 +29,34 @@ Deno.serve(async (req) => {
 
     const events = parsedBody.data;
 
+    const seen = new Map<string, typeof events[number]>();
+    const duplicates: typeof events[number][] = [];
+
+    for (const event of events) {
+      const key = `${event.meet}__${event.athlete}__${event.type}`;
+
+      if (seen.has(key)) {
+        duplicates.push(event);
+
+        console.log("🚨 DUPLICATE EVENT IN EDGE FUNCTION:");
+        console.log("Key:", key);
+        console.log("Existing:", seen.get(key));
+        console.log("Duplicate:", event);
+
+        continue;
+      }
+
+      seen.set(key, event);
+    }
+
+    if (duplicates.length > 0) {
+      console.log(`⚠️ Found ${duplicates.length} duplicate events in request`);
+    }
+
+    console.log("FINISHED DEDUPING");
+
+    const dedupedEvents = Array.from(seen.values());
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
