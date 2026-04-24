@@ -663,11 +663,11 @@ export default function MeetEventsPage({ id }: { id: string }) {
         </div>
       )}
       {topEvent && (
-        <div className="flex flex-col items-center gap-1 flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-4 shadow">
+        <div className="flex flex-col items-center gap-1 flex-[1.5] bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-4 shadow">
           <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
             Top Event
           </span>
-          <span className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+          <span className="text-2xl font-semibold text-gray-900 dark:text-gray-100 text-center">
             {topEvent.name}
           </span>
           <span className="text-sm text-gray-500 dark:text-gray-400">

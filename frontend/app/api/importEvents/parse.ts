@@ -68,7 +68,8 @@ function isValidResult(result: string): boolean {
 }
 
 function isFieldEvent(type: string): boolean {
-  return /(HJ|PV|LJ|TJ|SP|DT|JT|HT|WT)/i.test(type);
+  return /(HJ|PV|LJ|TJ|SP|DT|JT|HT|WT|High Jump|Pole Vault|Long Jump|Triple Jump|Shot Put|Discus|Javelin|Hammer|Weight)/i
+    .test(type);
 }
 
 function inchesToFeetInches(inches: number): string {
@@ -93,13 +94,15 @@ function formatTrackTime(value: string): string {
   const seconds = num % 60;
 
   if (minutes > 0) {
-    // e.g. 1:30.4 — trim trailing zeros but keep at least one decimal
-    const secStr = seconds.toFixed(3).replace(/0+$/, "").replace(/\.$/, ".0");
-    return `${minutes}:${secStr.padStart(4, "0")}`;
+    const secStr = seconds.toFixed(2).replace(/\.?0+$/, "");
+    // Pad whole-seconds part to 2 digits: "6.4" → "06.4", "10.4" → "10.4"
+    const [whole, frac] = secStr.split(".");
+    const paddedSec = whole.padStart(2, "0") + (frac ? `.${frac}` : "");
+    return `${minutes}:${paddedSec}`;
   }
 
-  // e.g. 10.45 — same trimming
-  return seconds.toFixed(3).replace(/0+$/, "").replace(/\.$/, ".0");
+  // Sub-60s: trim trailing zeros, keep at least one decimal place
+  return seconds.toFixed(2).replace(/0+$/, "").replace(/\.$/, ".0");
 }
 
 function parseFeetInches(value: string): number | null {
@@ -116,26 +119,24 @@ function normalizeDetails(value: string, eventType: string): string {
   const cleaned = value.trim().replace(/\s+/g, " ");
 
   if (isFieldEvent(eventType)) {
-    // Try feet-inches string first (comma-delimited format: "12-06.00")
+    // Comma-delimited: bare integer inches (e.g. "60" = 5'0")
+    // Hy-Tek: feet-inches string (e.g. "27-03.00")
     const fromFeetInches = parseFeetInches(cleaned);
-    if (fromFeetInches !== null) {
-      return inchesToFeetInches(fromFeetInches);
-    }
+    if (fromFeetInches !== null) return inchesToFeetInches(fromFeetInches);
 
-    // Fall back: raw inches number (Hy-Tek format: "150" = 12'6")
     const num = parseFloat(cleaned);
-    if (!isNaN(num)) {
-      return inchesToFeetInches(num);
-    }
+    if (!isNaN(num)) return inchesToFeetInches(num);
 
     return cleaned;
   }
 
-  // Track: any valid number is a time in seconds
+  // Track events:
+  // Hy-Tek already formats as "11:31.91" — pass through unchanged
+  if (cleaned.includes(":")) return cleaned;
+
+  // Comma-delimited stores raw seconds as a float (e.g. "594.761")
   const num = parseFloat(cleaned);
-  if (!isNaN(num)) {
-    return formatTrackTime(cleaned);
-  }
+  if (!isNaN(num)) return formatTrackTime(cleaned);
 
   return cleaned;
 }
