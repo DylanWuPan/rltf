@@ -6,7 +6,7 @@ import Link from "next/link";
 import DashboardTemplate from "@/components/DashboardTemplate";
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
-import { loadingModal, confirmModal } from "@/components/ui/modal";
+import { loadingModal, confirmModal, editModal } from "@/components/ui/modal";
 
 export default function SeasonsClient({ id }: { id: string }) {
   const [isPublic, setIsPublic] = useState(false);
@@ -568,6 +568,61 @@ export default function SeasonsClient({ id }: { id: string }) {
     ) : null,
   ].filter(Boolean);
 
+  const onEdit = async () => {
+    const result = await editModal({
+      title: "Edit Season",
+      fields: [
+        {
+          name: "name",
+          label: "Name",
+          type: "text",
+          defaultValue: seasonName ?? "",
+        },
+        {
+          name: "start",
+          label: "Start Date",
+          type: "text",
+          defaultValue: seasonStart ?? "",
+        },
+        {
+          name: "end",
+          label: "End Date",
+          type: "text",
+          defaultValue: seasonEnd ?? "",
+        },
+      ],
+    });
+
+    if (!result) return;
+
+    try {
+      const res = await fetch("/api/editEntity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: seasonId,
+          table: "seasons",
+          data: {
+            name: String(result.name),
+            start: String(result.start),
+            end: String(result.end),
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update season!");
+      }
+
+      toast.success("Athlete updated!");
+      setSeasonName(String(result.name));
+      setSeasonStart(String(result.start));
+      setSeasonEnd(String(result.end));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error updating event");
+    }
+  };
+
   return (
     <>
       <DashboardTemplate
@@ -585,6 +640,7 @@ export default function SeasonsClient({ id }: { id: string }) {
         loading={loading}
         onDelete={onDelete}
         onBack={onBack}
+        onEdit={onEdit}
         rosterSection={rosterSection}
         isPublic={isPublic}
       />

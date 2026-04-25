@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import { LogoutButton } from "./logout-button";
 import { Button } from "./ui/button";
 import { LoginButton } from "./login-button";
-import { confirmModal, loadingModal } from "./ui/modal";
+import { confirmModal, loadingModal, editModal } from "./ui/modal";
 import toast from "react-hot-toast";
+import { Home, Pencil } from "lucide-react";
 
 interface DashboardTemplateProps<T> {
   title?: string;
@@ -23,6 +24,7 @@ interface DashboardTemplateProps<T> {
   rosterSection?: ReactNode;
   hideBackButton?: boolean;
   isPublic: boolean;
+  onEdit?: () => void;
 }
 
 export default function DashboardTemplate<T>({
@@ -37,6 +39,7 @@ export default function DashboardTemplate<T>({
   loading,
   onDelete,
   onBack,
+  onEdit,
   hideBackButton,
   isPublic,
   moreInfo,
@@ -46,19 +49,44 @@ export default function DashboardTemplate<T>({
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="relative flex min-h-screen w-full max-w-3xl flex-col items-start gap-8 py-32 px-16 bg-white dark:bg-black">
+      <main className="relative flex min-h-screen w-full max-w-5xl flex-col items-start gap-8 py-32 px-16 bg-white dark:bg-black">
         {!hideBackButton && !isPublic && (
-          <button
-            onClick={onBack ? onBack : () => router.back()}
-            className="absolute top-8 left-8 text-sm text-zinc-500 hover:text-black dark:hover:text-white transition-colors cursor-pointer"
-          >
-            ← Back
-          </button>
+          <div className="absolute top-8 left-8 flex flex-col items-left gap-3">
+            {/* Home Button */}
+            <button
+              onClick={() => router.push("/")}
+              className="text-sm text-zinc-500 hover:text-black dark:hover:text-white transition-colors cursor-pointer"
+              title="Home"
+            >
+              <Home size={18} />
+            </button>
+            {/* Back Button */}
+            <button
+              onClick={onBack ? onBack : () => router.back()}
+              title="Back"
+              className="text-sm text-zinc-500 hover:text-black dark:hover:text-white transition-colors cursor-pointer"
+            >
+              ← Back
+            </button>
+          </div>
         )}
 
         <div className="w-full flex flex-col gap-4">
-          {title && <h1 className="text-4xl font-bold">{title}</h1>}
-
+          {title && (
+            <div className="flex items-center gap-2">
+              <h1 className="text-4xl font-bold">{title}</h1>
+              {onEdit && (
+                <button
+                  type="button"
+                  className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+                  title="Edit"
+                  onClick={onEdit}
+                >
+                  <Pencil size={16} />
+                </button>
+              )}
+            </div>
+          )}
           {subtitle && <h2 className="text-xl text-gray-500">{subtitle}</h2>}
 
           {/* Bubble navigation */}

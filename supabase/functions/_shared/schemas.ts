@@ -32,4 +32,5 @@ export const EventSchema = z.object({
 export const EntityByIdSchema = z.object({
   id: z.string().uuid(),
   table: z.string(),
+  data: z.any().optional(),
 });

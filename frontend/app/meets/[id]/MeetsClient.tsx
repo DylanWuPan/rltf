@@ -261,25 +261,22 @@ export default function MeetEventsPage({ id }: { id: string }) {
                         if (!result) return;
 
                         try {
-                          const res = await fetch("/api/updateEntity", {
+                          const res = await fetch("/api/editEntity", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
+                              id: event.id,
                               table: "events",
                               data: {
-                                athlete: event.athlete.id,
-                                type: event.type,
                                 place: Number(result.place),
                                 points: Number(result.points),
-                                details: result.details,
-                                meet: event.meet.id,
+                                details: String(result.details),
                               },
                             }),
                           });
 
                           if (!res.ok) {
-                            toast.error("Failed to update event!");
-                            throw new Error("Failed to update event");
+                            throw new Error("Failed to update event!");
                           }
 
                           toast.success("Event updated!");
@@ -299,7 +296,7 @@ export default function MeetEventsPage({ id }: { id: string }) {
                           toast.error(
                             err instanceof Error
                               ? err.message
-                              : "Error updating event"
+                              : "Error updating event!"
                           );
                         }
                       }}

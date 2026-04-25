@@ -5,6 +5,7 @@ import DashboardTemplate from "@/components/DashboardTemplate";
 import type { Event } from "../../api/getEvents/route";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
+import { editModal } from "@/components/ui/modal";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -34,13 +35,28 @@ function getBestResult(type: string, details: string[]): string {
   } else {
     // Field: highest distance in "feet-inches.decimal"
     const toInches = (d: string) => {
-      const [feetStr, inchesStr] = d.split("-");
-      return parseInt(feetStr, 10) * 12 + parseFloat(inchesStr);
+      if (!d) return 0;
+
+      // matches formats like:
+      // 12' 6''
+      // 12'6''
+      // 11' 0''
+      const match = d.match(/(\d+)\s*'\s*(\d+(?:\.\d+)?)\s*"?/);
+
+      if (!match) return 0;
+
+      const feet = parseInt(match[1], 10);
+      const inches = parseFloat(match[2]);
+
+      if (isNaN(feet) || isNaN(inches)) return 0;
+
+      return feet * 12 + inches;
     };
-    const best = Math.max(...details.map(toInches));
+    const converted = details.map(toInches).filter((n) => !isNaN(n));
+    const best = converted.length ? Math.max(...converted) : 0;
     const feet = Math.floor(best / 12);
-    const inches = (best % 12).toFixed(2).padStart(5, "0");
-    return `${feet}-${inches}`;
+    const inchesNum = Math.round((best % 12) * 100) / 100;
+    return `${feet}' ${inchesNum}"`;
   }
 }
 
@@ -50,10 +66,10 @@ export default function AthletesClient({ id }: { id: string }) {
   const athleteId = id;
 
   const [isPublic, setIsPublic] = useState(false);
-  const [athleteName, setAthleteName] = useState("");
+  const [athleteName, setAthleteName] = useState<string>("");
   const [athleteSeasonId, setAthleteSeasonId] = useState("");
-  const [athleteSeasonName, setAthleteSeasonName] = useState("");
-  const [athleteClass, setAthleteClass] = useState("");
+  const [athleteSeasonName, setAthleteSeasonName] = useState<string>("");
+  const [athleteClass, setAthleteClass] = useState<string | null>("");
   const [userId, setUserId] = useState<string | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
@@ -158,7 +174,7 @@ export default function AthletesClient({ id }: { id: string }) {
   const content = (
     <div className="flex flex-col gap-4 w-full">
       {/* Stat cards */}
-      <div className="flex gap-3 w-full">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 w-full">
         {[
           { label: "Meets", value: totalMeets },
           { label: "Events", value: totalEvents },
@@ -168,12 +184,12 @@ export default function AthletesClient({ id }: { id: string }) {
         ].map(({ label, value }) => (
           <div
             key={label}
-            className="flex flex-col items-center gap-1 flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-4"
+            className="flex flex-col items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-4"
           >
             <span className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
               {value}
             </span>
-            <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 text-center">
               {label}
             </span>
           </div>
@@ -294,6 +310,55 @@ export default function AthletesClient({ id }: { id: string }) {
     }
   };
 
+  const onEdit = async () => {
+    const result = await editModal({
+      title: "Edit Athlete",
+      fields: [
+        {
+          name: "name",
+          label: "Name",
+          type: "text",
+          defaultValue: athleteName ?? "",
+        },
+        {
+          name: "class",
+          label: "Class",
+          type: "text",
+          defaultValue: athleteClass ?? "",
+        },
+      ],
+    });
+
+    if (!result) return;
+
+    try {
+      const res = await fetch("/api/editEntity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: athleteId,
+          table: "athletes",
+          data: {
+            class: String(result.class),
+            name: String(result.name),
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update athlete!");
+      }
+
+      toast.success("Athlete updated!");
+      setAthleteClass(String(result.class));
+      setAthleteName(String(result.name));
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Error updating athlete"
+      );
+    }
+  };
+
   const links = isPublic
     ? [
         <button
@@ -329,6 +394,7 @@ export default function AthletesClient({ id }: { id: string }) {
       loading={loading}
       moreInfo={content}
       onDelete={onDelete}
+      onEdit={onEdit}
       links={links}
       isPublic={isPublic}
     />

@@ -1,10 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.46.1";
-import { SeasonSchema } from "../_shared/schemas.ts";
+import { EntityByIdSchema } from "../_shared/schemas.ts";
 
 Deno.serve(async (req) => {
   try {
     const body = await req.json();
-    const parsedBody = SeasonSchema.safeParse(body);
+    const parsedBody = EntityByIdSchema.safeParse(body);
+
+    console.log("Received request with body:", body);
 
     if (!parsedBody.success) {
       return new Response(
@@ -16,7 +18,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { name, start, end, user } = parsedBody.data;
+    const { id, table, data } = parsedBody.data;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -24,13 +26,13 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } },
     );
 
-    const { data, error } = await supabase
-      .from("seasons")
-      .insert({ name, start, end, user })
-      .select()
-      .single();
+    const { error } = await supabase
+      .from(table)
+      .update(data)
+      .eq("id", id);
 
     if (error) {
+      console.error("Error editing entity:", error);
       return new Response(
         JSON.stringify({ error: error.message }),
         { status: 500, headers: { "Content-Type": "application/json" } },
@@ -38,8 +40,8 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, season: data }),
-      { status: 201, headers: { "Content-Type": "application/json" } },
+      JSON.stringify({ success: true, editedId: id }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (err) {
     console.error(err);
@@ -50,13 +52,11 @@ Deno.serve(async (req) => {
   }
 });
 
-/* To invoke locally:
+/* Example local invocation:
 
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
-  2. Make an HTTP request:
-
-  curl -X POST "https://yswwvmzncodhxafkzswz.supabase.co/functions/v1/addSeason" \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlzd3d2bXpuY29kaHhhZmt6c3d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzODMwNDcsImV4cCI6MjA4MDk1OTA0N30.PbXFC1FLzN8oEiUCIuL7u662SteIEcsxuGff9icHZ9A' \
+curl -X POST "https://YOURPROJECT.supabase.co/functions/v1/deleteEventFromMeet" \
+  -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
-  -d '{ "title": "New Season", "start": "2026-03-01T00:00:00Z", "end": "2026-05-31T23:59:59Z" }'
+  -d '{ "id": "EVENT_UUID_HERE" }'
+
 */
