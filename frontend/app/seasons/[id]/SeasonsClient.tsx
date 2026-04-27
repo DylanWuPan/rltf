@@ -166,7 +166,7 @@ export default function SeasonsClient({ id }: { id: string }) {
           {meet.name}
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          {formatDate(meet.date)} | @ {meet.location} | {meet.num_teams} Teams
+          {formatDate(meet.date)} · @ {meet.location} · {meet.num_teams} Teams
         </p>
       </div>
       <div className="text-blue-500 group-hover:scale-110 transition-transform duration-200">

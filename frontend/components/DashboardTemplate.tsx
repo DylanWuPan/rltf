@@ -75,7 +75,7 @@ export default function DashboardTemplate<T>({
           {title && (
             <div className="flex items-center gap-2">
               <h1 className="text-4xl font-bold">{title}</h1>
-              {onEdit && (
+              {!isPublic && onEdit && (
                 <button
                   type="button"
                   className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer"

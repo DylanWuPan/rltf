@@ -691,6 +691,69 @@ export default function MeetEventsPage({ id }: { id: string }) {
     </div>
   );
 
+  const onEdit = async () => {
+    const result = await editModal({
+      title: "Edit Meet",
+      fields: [
+        {
+          name: "name",
+          label: "Name",
+          type: "text",
+          defaultValue: meetName ?? "",
+        },
+        {
+          name: "date",
+          label: "Date",
+          type: "text",
+          defaultValue: meetDate ?? "",
+        },
+        {
+          name: "location",
+          label: "Location",
+          type: "text",
+          defaultValue: meetLocation ?? "",
+        },
+        {
+          name: "numTeams",
+          label: "Number of Teams",
+          type: "number",
+          defaultValue: meetNumTeams ?? "",
+        },
+      ],
+    });
+
+    if (!result) return;
+
+    try {
+      const res = await fetch("/api/editEntity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: meetId,
+          table: "meets",
+          data: {
+            name: String(result.name),
+            date: String(result.date),
+            location: String(result.location),
+            num_teams: Number(result.numTeams),
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update meet!");
+      }
+
+      toast.success("Athlete updated!");
+      setMeetName(String(result.name));
+      setMeetDate(String(result.date));
+      setMeetLocation(String(result.location));
+      setMeetNumTeams(Number(result.numTeams));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error updating meet!");
+    }
+  };
+
   // ─── Render ───────────────────────────────────────────────────────────────────
 
   const formatDate = (dateStr: string) => {
@@ -709,9 +772,9 @@ export default function MeetEventsPage({ id }: { id: string }) {
   return (
     <DashboardTemplate
       title={meetName || "Meet"}
-      subtitle={`${meetDate ? formatDate(meetDate) : ""} | @ ${
+      subtitle={`${meetDate ? formatDate(meetDate) : ""} · @ ${
         meetLocation || ""
-      } | ${meetNumTeams} Teams`}
+      } · ${meetNumTeams} Teams`}
       subject="Events"
       items={Object.entries(groupedEventsSorted)}
       renderItem={(entry: [string, Event[]]) =>
@@ -726,6 +789,7 @@ export default function MeetEventsPage({ id }: { id: string }) {
         });
         window.location.href = "/seasons/" + meetSeasonId;
       }}
+      onEdit={onEdit}
       isPublic={isPublic}
       moreInfo={moreInfo}
     />
